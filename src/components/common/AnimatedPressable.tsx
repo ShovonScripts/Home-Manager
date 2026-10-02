@@ -28,11 +28,13 @@ export const AnimatedPressable: React.FC<Props> = ({
   }));
 
   const handlePressIn = (e: any) => {
+    // eslint-disable-next-line react-hooks/immutability
     scale.value = withSpring(scaleValue, { damping: 15, stiffness: 300 });
     onPressIn?.(e);
   };
 
   const handlePressOut = (e: any) => {
+    // eslint-disable-next-line react-hooks/immutability
     scale.value = withSpring(1, { damping: 15, stiffness: 300 });
     onPressOut?.(e);
   };
