@@ -107,8 +107,8 @@ function RootLayoutNav() {
         {/* Sub-routes hidden from bottom tab bar */}
         <Tabs.Screen name="bills" options={{ href: null, title: 'Bills & Payments', headerShown: true, headerLeft: () => <BackButton /> }} />
         <Tabs.Screen name="expenses" options={{ href: null, title: 'Household Expenses', headerShown: true, headerLeft: () => <BackButton /> }} />
-        <Tabs.Screen name="calendar" options={{ href: null, title: 'Calendar & Dates' }} />
-        <Tabs.Screen name="reminders" options={{ href: null, title: 'Reminders & Medicine' }} />
+        <Tabs.Screen name="calendar" options={{ href: null, title: 'Calendar & Dates', headerShown: true, headerLeft: () => <BackButton /> }} />
+        <Tabs.Screen name="reminders" options={{ href: null, title: 'Reminders & Medicine', headerShown: true, headerLeft: () => <BackButton /> }} />
         <Tabs.Screen name="notes" options={{ href: null, title: 'Shared Notes' }} />
         <Tabs.Screen name="family" options={{ href: null, title: 'Family Members' }} />
         <Tabs.Screen name="settings" options={{ href: null, title: 'Settings' }} />
