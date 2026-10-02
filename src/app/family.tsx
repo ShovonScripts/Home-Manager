@@ -1,34 +1,62 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useHousehold } from '../context/HouseholdContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { ErrorState, LoadingState } from '../components/common/AsyncState';
+import { HouseholdMember } from '../types';
 
 export default function FamilyScreen() {
   const { colors } = useTheme();
-  const { household, members, addMember, removeMember, isLoading, error, refreshHousehold } = useHousehold();
-  const [newMemberName, setNewMemberName] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
-  const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member' | 'child'>('member');
+  const { household, members, addMember, updateMember, removeMember } = useHousehold();
 
-  const handleAddMember = async () => {
-    if (isAdding) return;
-    if (!newMemberName.trim()) {
+  const [name, setName] = useState('');
+  const [role, setRole] = useState<'admin' | 'member' | 'child'>('member');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [editingMember, setEditingMember] = useState<HouseholdMember | null>(null);
+
+  const handleOpenEdit = (member: HouseholdMember) => {
+    setEditingMember(member);
+    setName(member.name);
+    setRole(member.role);
+    setWhatsapp(member.whatsapp || '');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMember(null);
+    setName('');
+    setRole('member');
+    setWhatsapp('');
+  };
+
+  const handleSaveMember = async () => {
+    if (!name.trim()) {
       Alert.alert('Error', 'Please enter a member name');
       return;
     }
-    setIsAdding(true);
-    try {
-      await addMember(newMemberName.trim(), newMemberRole);
-      setNewMemberName('');
+
+    if (editingMember) {
+      await updateMember({
+        ...editingMember,
+        name: name.trim(),
+        role,
+        whatsapp: whatsapp.trim() || undefined,
+      });
+      Alert.alert('Success', 'Family member updated successfully!');
+    } else {
+      await addMember(name.trim(), role, whatsapp.trim() || undefined);
       Alert.alert('Success', 'Family member added successfully!');
-    } catch {
-      // The household error state offers retry; retain the entered member name.
-    } finally {
-      setIsAdding(false);
     }
+
+    handleCancelEdit();
   };
 
   const handleRemove = (memberId: string, memberName: string) => {
@@ -42,14 +70,6 @@ export default function FamilyScreen() {
     ]);
   };
 
-  if (isLoading || error) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {isLoading ? <LoadingState /> : <ErrorState message={error!} onRetry={refreshHousehold} />}
-      </View>
-    );
-  }
-
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -61,13 +81,23 @@ export default function FamilyScreen() {
           {household?.name || 'Household'} Members
         </Text>
         <Text style={[styles.headerSubtitle, { color: colors.onPrimaryContainer }]}>
-          Manage family members sharing this home
+          Manage family members, roles, and WhatsApp contacts for task notifications
         </Text>
       </View>
 
-      {/* Add Member Form */}
+      {/* Add / Edit Member Form */}
       <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-        <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Add Family Member</Text>
+        <View style={styles.formHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
+            {editingMember ? `Edit Member: ${editingMember.name}` : 'Add Family Member'}
+          </Text>
+          {editingMember && (
+            <TouchableOpacity onPress={handleCancelEdit}>
+              <Text style={[styles.cancelText, { color: colors.error }]}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <TextInput
           style={[
             styles.input,
@@ -75,33 +105,42 @@ export default function FamilyScreen() {
           ]}
           placeholder="Member Name (e.g. Sarah)"
           placeholderTextColor={colors.outline}
-          value={newMemberName}
-          onChangeText={setNewMemberName}
+          value={name}
+          onChangeText={setName}
+        />
+
+        <TextInput
+          style={[
+            styles.input,
+            { backgroundColor: colors.surfaceVariant, color: colors.onSurface, borderColor: colors.outline },
+          ]}
+          placeholder="WhatsApp Number (e.g. +8801700000000)"
+          placeholderTextColor={colors.outline}
+          keyboardType="phone-pad"
+          value={whatsapp}
+          onChangeText={setWhatsapp}
         />
 
         <View style={styles.roleContainer}>
-          {(['admin', 'member', 'child'] as const).map((role) => (
+          {(['admin', 'member', 'child'] as const).map((r) => (
             <TouchableOpacity
-              key={role}
+              key={r}
               style={[
                 styles.roleButton,
                 {
-                  backgroundColor: newMemberRole === role ? colors.primary : colors.surfaceVariant,
-                  borderColor: newMemberRole === role ? colors.primary : colors.cardBorder,
+                  backgroundColor: role === r ? colors.primary : colors.surfaceVariant,
+                  borderColor: role === r ? colors.primary : colors.cardBorder,
                 },
               ]}
-              onPress={() => setNewMemberRole(role)}
-              accessibilityRole="radio"
-              accessibilityLabel={`${role} role`}
-              accessibilityState={{ checked: newMemberRole === role }}
+              onPress={() => setRole(r)}
             >
               <Text
                 style={[
                   styles.roleButtonText,
-                  { color: newMemberRole === role ? colors.onPrimary : colors.onSurface },
+                  { color: role === r ? '#FFFFFF' : colors.onSurface },
                 ]}
               >
-                {role.charAt(0).toUpperCase() + role.slice(1)}
+                {r.charAt(0).toUpperCase() + r.slice(1)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -109,14 +148,10 @@ export default function FamilyScreen() {
 
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: colors.primary }]}
-          onPress={handleAddMember}
-          disabled={isAdding}
-          accessibilityRole="button"
-          accessibilityLabel="Add family member"
-          accessibilityState={{ disabled: isAdding, busy: isAdding }}
+          onPress={handleSaveMember}
         >
-          <Ionicons name="person-add" size={18} color={colors.onPrimary} />
-          <Text style={[styles.addButtonText, { color: colors.onPrimary }]}>Add Member</Text>
+          <Ionicons name={editingMember ? 'checkmark-circle' : 'person-add'} size={18} color="#FFFFFF" />
+          <Text style={styles.addButtonText}>{editingMember ? 'Save Changes' : 'Add Member'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -127,31 +162,42 @@ export default function FamilyScreen() {
 
       <View style={styles.memberList}>
         {members.map((member) => (
-          <View
+          <TouchableOpacity
             key={member.id}
             style={[styles.memberCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+            onPress={() => handleOpenEdit(member)}
+            activeOpacity={0.7}
           >
             <View style={[styles.avatarBox, { backgroundColor: colors.primaryContainer }]}>
               <Ionicons name="person" size={20} color={colors.primary} />
             </View>
             <View style={styles.memberInfo}>
               <Text style={[styles.memberName, { color: colors.onSurface }]}>{member.name}</Text>
-              <Text style={[styles.memberRole, { color: colors.outline }]}>
-                Role: {member.role.toUpperCase()}
-              </Text>
+              <View style={styles.memberMetaRow}>
+                <Text style={[styles.memberRole, { color: colors.outline }]}>
+                  {member.role.toUpperCase()}
+                </Text>
+                {member.whatsapp && (
+                  <>
+                    <Text style={[styles.bullet, { color: colors.outline }]}>•</Text>
+                    <Ionicons name="logo-whatsapp" size={12} color="#25D366" style={{ marginRight: 2 }} />
+                    <Text style={[styles.whatsappText, { color: colors.outline }]}>{member.whatsapp}</Text>
+                  </>
+                )}
+              </View>
             </View>
             {members.length > 1 && (
               <TouchableOpacity
-                onPress={() => handleRemove(member.id, member.name)}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleRemove(member.id, member.name);
+                }}
                 style={styles.deleteButton}
-                accessibilityRole="button"
-                accessibilityLabel={`Remove family member: ${member.name}`}
-                hitSlop={8}
               >
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               </TouchableOpacity>
             )}
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </ScrollView>
@@ -189,10 +235,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     ...Shadows.sm,
   },
+  formHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: Spacing.md,
+  },
+  cancelText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   input: {
     height: 48,
@@ -227,6 +282,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addButtonText: {
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -258,7 +314,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 2,
   },
+  memberMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   memberRole: {
+    fontSize: 12,
+  },
+  bullet: {
+    fontSize: 12,
+    marginHorizontal: 4,
+  },
+  whatsappText: {
     fontSize: 12,
   },
   deleteButton: {

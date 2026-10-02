@@ -10,6 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Switch,
+  Linking,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useHousehold } from '../../context/HouseholdContext';
@@ -45,6 +47,7 @@ export const TaskModal: React.FC<Props> = ({
   const [description, setDescription] = useState(taskToEdit?.description || '');
   const [categoryId, setCategoryId] = useState(taskToEdit?.categoryId || categories[0]?.id || '');
   const [assignedTo, setAssignedTo] = useState<string | undefined>(taskToEdit?.assignedTo);
+  const [sendWhatsapp, setSendWhatsapp] = useState(true);
   const [dueDateStr, setDueDateStr] = useState(() => {
     if (taskToEdit?.dueDate) {
       const d = new Date(taskToEdit.dueDate);
@@ -55,6 +58,9 @@ export const TaskModal: React.FC<Props> = ({
     }
     return '';
   });
+
+  const selectedMember = members.find((m) => m.name === assignedTo);
+  const hasWhatsapp = Boolean(selectedMember?.whatsapp);
 
   const handleSave = () => {
     if (!title.trim()) {
@@ -75,6 +81,17 @@ export const TaskModal: React.FC<Props> = ({
         Alert.alert('Validation Error', 'Please enter a valid due date (YYYY-MM-DD).');
         return;
       }
+    }
+
+    // Trigger WhatsApp notification if assigned member has a WhatsApp number
+    if (assignedTo && sendWhatsapp && selectedMember?.whatsapp) {
+      const phone = selectedMember.whatsapp.replace(/[^0-9]/g, '');
+      const text = encodeURIComponent(
+        `Hello ${selectedMember.name}! You have been assigned a new task in Home Manager: *${title.trim()}*. Please check the app when you get a chance!`
+      );
+      Linking.openURL(`https://wa.me/${phone}?text=${text}`).catch(() => {
+        Alert.alert('Notice', 'Could not open WhatsApp. Task was saved successfully.');
+      });
     }
 
     onSave(
@@ -237,6 +254,24 @@ export const TaskModal: React.FC<Props> = ({
               })}
             </ScrollView>
 
+            {/* WhatsApp Notification Toggle (if member has WhatsApp) */}
+            {hasWhatsapp && (
+              <View style={[styles.switchRow, { backgroundColor: colors.surfaceVariant }]}>
+                <View style={styles.switchTextContainer}>
+                  <Ionicons name="logo-whatsapp" size={18} color="#25D366" style={{ marginRight: 8 }} />
+                  <Text style={[styles.switchLabel, { color: colors.onSurface }]}>
+                    Notify {selectedMember?.name} via WhatsApp
+                  </Text>
+                </View>
+                <Switch
+                  value={sendWhatsapp}
+                  onValueChange={setSendWhatsapp}
+                  trackColor={{ false: colors.outline, true: '#25D366' }}
+                  thumbColor={colors.surface}
+                />
+              </View>
+            )}
+
             {/* Due Date */}
             <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Due Date (YYYY-MM-DD, Optional)</Text>
             <TextInput
@@ -325,6 +360,23 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+  },
+  switchTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  switchLabel: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   saveButton: {
     flexDirection: 'row',
