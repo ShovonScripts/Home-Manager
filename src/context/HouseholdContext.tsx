@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Household, HouseholdMember } from '../types';
 import { HouseholdService } from '../services/householdService';
 
@@ -8,7 +8,8 @@ interface HouseholdContextType {
   isLoading: boolean;
   error: string | null;
   refreshHousehold: () => Promise<void>;
-  addMember: (name: string, role?: 'admin' | 'member' | 'child') => Promise<void>;
+  addMember: (name: string, role?: 'admin' | 'member' | 'child', whatsapp?: string) => Promise<void>;
+  updateMember: (member: HouseholdMember) => Promise<void>;
   removeMember: (memberId: string) => Promise<void>;
 }
 
@@ -20,38 +21,40 @@ export const HouseholdProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadHousehold = useCallback(() => {
-    return HouseholdService.loadHouseholdData()
-      .then((data) => {
-        if (!data.household) throw new Error('No household data found. Please retry.');
-        setHousehold(data.household);
-        setMembers(data.members);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Failed to load household data');
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
-
-  const refreshHousehold = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    await loadHousehold();
-  }, [loadHousehold]);
-
-  const addMember = async (name: string, role: 'admin' | 'member' | 'child' = 'member') => {
-    if (!household) {
-      const error = new Error('Household data is not available. Please retry loading it.');
-      setError(error.message);
-      throw error;
-    }
+  const refreshHousehold = async () => {
     try {
-      await HouseholdService.addNewMember(household.id, name, role);
+      setIsLoading(true);
+      const data = await HouseholdService.loadHouseholdData();
+      setHousehold(data.household);
+      setMembers(data.members);
+      setError(null);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load household data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addMember = async (
+    name: string,
+    role: 'admin' | 'member' | 'child' = 'member',
+    whatsapp?: string
+  ) => {
+    if (!household) return;
+    try {
+      await HouseholdService.addNewMember(household.id, name, role, whatsapp);
       await refreshHousehold();
     } catch (err: any) {
       setError(err?.message || 'Failed to add member');
-      throw err; // The form must not announce success or clear its draft on a failed write.
+    }
+  };
+
+  const updateMember = async (member: HouseholdMember) => {
+    try {
+      await HouseholdService.updateMember(member);
+      await refreshHousehold();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to update member');
     }
   };
 
@@ -65,8 +68,9 @@ export const HouseholdProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   useEffect(() => {
-    void loadHousehold();
-  }, [loadHousehold]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refreshHousehold();
+  }, []);
 
   return (
     <HouseholdContext.Provider
@@ -77,6 +81,7 @@ export const HouseholdProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         error,
         refreshHousehold,
         addMember,
+        updateMember,
         removeMember,
       }}
     >

@@ -1,40 +1,137 @@
-import React from 'react';
-import { StyleSheet, Text, View, Switch } from 'react-native';
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  Switch,
+  Alert,
+} from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useHousehold } from '../context/HouseholdContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { ErrorState, LoadingState } from '../components/common/AsyncState';
+import { HouseholdRepository } from '../storage/repositories/householdRepository';
+import { Household } from '../types';
 
 export default function SettingsScreen() {
   const { colors, themeMode, toggleTheme } = useTheme();
-  const { household, members, isLoading, error, refreshHousehold } = useHousehold();
-
-  if (isLoading || error) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {isLoading ? <LoadingState /> : <ErrorState message={error!} onRetry={refreshHousehold} />}
-      </View>
-    );
-  }
+  const { household, refreshHousehold } = useHousehold();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Household Info */}
+    <SettingsContent
+      key={household?.id || 'settings'}
+      colors={colors}
+      themeMode={themeMode}
+      toggleTheme={toggleTheme}
+      household={household}
+      refreshHousehold={refreshHousehold}
+    />
+  );
+}
+
+interface SettingsContentProps {
+  colors: any;
+  themeMode: string;
+  toggleTheme: () => void;
+  household: Household | null;
+  refreshHousehold: () => Promise<void>;
+}
+
+function SettingsContent({
+  colors,
+  themeMode,
+  toggleTheme,
+  household,
+  refreshHousehold,
+}: SettingsContentProps) {
+  const [householdName, setHouseholdName] = useState(household?.name || '');
+  const [currency, setCurrency] = useState(household?.currency || '৳');
+
+  const handleSaveHousehold = async () => {
+    if (!household || !householdName.trim()) {
+      Alert.alert('Error', 'Please enter a valid household name.');
+      return;
+    }
+    try {
+      await HouseholdRepository.updateHousehold({
+        id: household.id,
+        name: householdName.trim(),
+        currency,
+      });
+      await refreshHousehold();
+      Alert.alert('Success', 'Household settings updated successfully!');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to update household settings');
+    }
+  };
+
+  const currencies = [
+    { label: 'Bangladeshi Taka (৳)', symbol: '৳' },
+    { label: 'US Dollar ($)', symbol: '$' },
+    { label: 'Euro (€)', symbol: '€' },
+    { label: 'British Pound (£)', symbol: '£' },
+  ];
+
+  return (
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.contentContainer}
+    >
+      {/* Household Settings */}
       <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[styles.sectionHeader, { color: colors.primary }]}>Household Details</Text>
-        <View style={styles.row}>
-          <Text style={[styles.label, { color: colors.onSurface }]}>Household Name</Text>
-          <Text style={[styles.value, { color: colors.onSurfaceVariant }]}>{household?.name || 'My Home'}</Text>
+
+        <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Household Name</Text>
+        <TextInput
+          style={[
+            styles.input,
+            { backgroundColor: colors.surfaceVariant, color: colors.onSurface, borderColor: colors.outline },
+          ]}
+          value={householdName}
+          onChangeText={setHouseholdName}
+          placeholder="My Home"
+          placeholderTextColor={colors.outline}
+        />
+
+        <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Currency</Text>
+        <View style={styles.currencyRow}>
+          {currencies.map((curr) => {
+            const isSelected = currency === curr.symbol;
+            return (
+              <TouchableOpacity
+                key={curr.symbol}
+                style={[
+                  styles.currencyButton,
+                  {
+                    backgroundColor: isSelected ? colors.primary : colors.surfaceVariant,
+                    borderColor: isSelected ? colors.primary : colors.cardBorder,
+                  },
+                ]}
+                onPress={() => setCurrency(curr.symbol)}
+              >
+                <Text
+                  style={[
+                    styles.currencyText,
+                    { color: isSelected ? colors.onPrimary : colors.onSurface },
+                  ]}
+                >
+                  {curr.symbol}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-        <View style={styles.row}>
-          <Text style={[styles.label, { color: colors.onSurface }]}>Currency</Text>
-          <Text style={[styles.value, { color: colors.onSurfaceVariant }]}>{household?.currency || '৳'} (BDT)</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={[styles.label, { color: colors.onSurface }]}>Members</Text>
-          <Text style={[styles.value, { color: colors.onSurfaceVariant }]}>{members.length} registered</Text>
-        </View>
+
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: colors.primary }]}
+          onPress={handleSaveHousehold}
+        >
+          <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+          <Text style={styles.saveButtonText}>Save Household Settings</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Appearance Settings */}
@@ -43,12 +140,9 @@ export default function SettingsScreen() {
         <View style={styles.row}>
           <View style={styles.rowLeft}>
             <Ionicons name={themeMode === 'dark' ? 'moon' : 'sunny'} size={20} color={colors.primary} />
-            <Text style={[styles.label, { color: colors.onSurface, marginLeft: Spacing.md }]}>Dark Mode</Text>
+            <Text style={[styles.labelRow, { color: colors.onSurface }]}>Dark Mode</Text>
           </View>
           <Switch
-            accessibilityRole="switch"
-            accessibilityLabel="Dark mode"
-            accessibilityState={{ checked: themeMode === 'dark' }}
             value={themeMode === 'dark'}
             onValueChange={toggleTheme}
             trackColor={{ false: colors.outline, true: colors.primary }}
@@ -60,23 +154,30 @@ export default function SettingsScreen() {
       {/* App Info */}
       <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[styles.sectionHeader, { color: colors.primary }]}>About Home Manager</Text>
-        <View style={styles.row}>
-          <Text style={[styles.label, { color: colors.onSurface }]}>Version</Text>
-          <Text style={[styles.value, { color: colors.onSurfaceVariant }]}>1.0.0 (Expo SDK 57)</Text>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { color: colors.onSurface }]}>Version</Text>
+          <Text style={[styles.infoValue, { color: colors.onSurfaceVariant }]}>1.0.0 (Expo SDK 57)</Text>
         </View>
-        <View style={styles.row}>
-          <Text style={[styles.label, { color: colors.onSurface }]}>Architecture</Text>
-          <Text style={[styles.value, { color: colors.onSurfaceVariant }]}>Offline-First SQLite</Text>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { color: colors.onSurface }]}>Architecture</Text>
+          <Text style={[styles.infoValue, { color: colors.onSurfaceVariant }]}>Offline-First SQLite</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { color: colors.onSurface }]}>Collaboration</Text>
+          <Text style={[styles.infoValue, { color: colors.onSurfaceVariant }]}>WhatsApp Quick-Notify</Text>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {
     padding: Spacing.lg,
+    paddingBottom: Spacing.xxl,
   },
   section: {
     padding: Spacing.lg,
@@ -92,6 +193,51 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  input: {
+    height: 48,
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.md,
+    fontSize: 15,
+    marginBottom: Spacing.sm,
+  },
+  currencyRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  currencyButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  currencyText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  saveButton: {
+    flexDirection: 'row',
+    height: 48,
+    borderRadius: BorderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    gap: 8,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -102,11 +248,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  label: {
+  labelRow: {
+    fontSize: 15,
+    fontWeight: '500',
+    marginLeft: Spacing.md,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  infoLabel: {
     fontSize: 15,
     fontWeight: '500',
   },
-  value: {
+  infoValue: {
     fontSize: 14,
     fontWeight: '400',
   },

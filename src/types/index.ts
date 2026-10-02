@@ -12,6 +12,7 @@ export interface HouseholdMember {
   name: string;
   role: 'admin' | 'member' | 'child';
   avatarUrl?: string;
+  whatsapp?: string;
   createdAt: number;
 }
 
@@ -30,7 +31,7 @@ export interface GroceryItem {
   quantity: string;
   category: string;
   isCompleted: boolean;
-  assignedTo?: string; // member id (legacy local records may contain a name)
+  assignedTo?: string;
   createdAt: number;
 }
 
@@ -48,7 +49,7 @@ export interface Expense {
   title: string;
   amount: number;
   currency: string;
-  paidBy: string; // member id (legacy local records may contain a name)
+  paidBy: string; // member id
   date: number;
   notes?: string;
   createdAt: number;
