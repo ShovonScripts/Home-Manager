@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useEffectEvent } from 'react';
 import {
   StyleSheet,
   Text,
@@ -41,7 +41,8 @@ export const BillModal: React.FC<Props> = ({ visible, billToEdit, onClose, onSav
   const [dueDateStr, setDueDateStr] = useState(''); // e.g. YYYY-MM-DD
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
+  const editingBillId = billToEdit?.id;
+  const initializeForm = useEffectEvent(() => {
     if (billToEdit) {
       setTitle(billToEdit.title);
       setAmount(billToEdit.amount.toString());
@@ -64,7 +65,12 @@ export const BillModal: React.FC<Props> = ({ visible, billToEdit, onClose, onSav
       setDueDateStr(`${yyyy}-${mm}-${dd}`);
       setNotes('');
     }
-  }, [billToEdit, visible]);
+  });
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- An explicit modal session boundary initializes the draft once.
+    if (visible) initializeForm();
+  }, [visible, editingBillId]);
 
   const handleSave = () => {
     if (!title.trim()) {
@@ -106,7 +112,7 @@ export const BillModal: React.FC<Props> = ({ visible, billToEdit, onClose, onSav
             <Text style={[styles.modalTitle, { color: colors.onSurface }]}>
               {isEditing ? 'Edit Bill' : 'Add Bill'}
             </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton} accessibilityRole="button" accessibilityLabel="Close bill form" hitSlop={8}>
               <Ionicons name="close" size={24} color={colors.onSurface} />
             </TouchableOpacity>
           </View>
@@ -224,9 +230,11 @@ export const BillModal: React.FC<Props> = ({ visible, billToEdit, onClose, onSav
             <TouchableOpacity
               style={[styles.saveButton, { backgroundColor: colors.primary }]}
               onPress={handleSave}
+              accessibilityRole="button"
+              accessibilityLabel={isEditing ? 'Save bill' : 'Add bill'}
             >
-              <Ionicons name={isEditing ? 'checkmark-circle' : 'add-circle'} size={20} color="#FFFFFF" />
-              <Text style={styles.saveButtonText}>{isEditing ? 'Save Changes' : 'Add Bill'}</Text>
+              <Ionicons name={isEditing ? 'checkmark-circle' : 'add-circle'} size={20} color={colors.onPrimary} />
+              <Text style={[styles.saveButtonText, { color: colors.onPrimary }]}>{isEditing ? 'Save Changes' : 'Add Bill'}</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -303,7 +311,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   saveButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },

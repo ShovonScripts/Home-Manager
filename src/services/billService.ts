@@ -1,5 +1,6 @@
 import { BillRepository } from '../storage/repositories/billRepository';
 import { Bill } from '../types';
+import { normalizeCurrencySymbol } from '../utils/currency';
 
 export const BillService = {
   async loadBills(householdId: string): Promise<Bill[]> {
@@ -17,11 +18,11 @@ export const BillService = {
     currency: string = '৳'
   ): Promise<Bill> {
     const newBill: Bill = {
-      id: `bill-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `bill-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       householdId,
       title: title.trim(),
       amount: Number(amount),
-      currency,
+      currency: normalizeCurrencySymbol(currency),
       dueDate,
       isPaid: false,
       category,

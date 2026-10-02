@@ -27,14 +27,6 @@ export const ExpenseSummaryCard: React.FC<Props> = ({
   const currentMonthNum = String(now.getMonth() + 1).padStart(2, '0');
   const currentMonthKey = `${currentYear}-${currentMonthNum}`;
 
-  const currentMonthLabel =
-    selectedMonth === 'all'
-      ? 'All Time'
-      : new Date(selectedMonth + '-01').toLocaleDateString('en-US', {
-          month: 'long',
-          year: 'numeric',
-        });
-
   return (
     <View style={[styles.card, { backgroundColor: colors.primaryContainer }]}>
       <View style={styles.headerRow}>
@@ -49,9 +41,11 @@ export const ExpenseSummaryCard: React.FC<Props> = ({
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: colors.primary }]}
           onPress={onAddPress}
+          accessibilityRole="button"
+          accessibilityLabel="Add expense"
         >
-          <Ionicons name="add" size={20} color="#FFFFFF" />
-          <Text style={styles.addButtonText}>Add</Text>
+          <Ionicons name="add" size={20} color={colors.onPrimary} />
+          <Text style={[styles.addButtonText, { color: colors.onPrimary }]}>Add</Text>
         </TouchableOpacity>
       </View>
 
@@ -66,6 +60,9 @@ export const ExpenseSummaryCard: React.FC<Props> = ({
             },
           ]}
           onPress={() => onMonthChange('all')}
+          accessibilityRole="button"
+          accessibilityLabel="All time expenses"
+          accessibilityState={{ selected: selectedMonth === 'all' }}
         >
           <Text
             style={[
@@ -86,6 +83,9 @@ export const ExpenseSummaryCard: React.FC<Props> = ({
             },
           ]}
           onPress={() => onMonthChange(currentMonthKey)}
+          accessibilityRole="button"
+          accessibilityLabel="This month expenses"
+          accessibilityState={{ selected: selectedMonth === currentMonthKey }}
         >
           <Text
             style={[
@@ -132,7 +132,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addButtonText: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },

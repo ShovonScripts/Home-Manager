@@ -1,5 +1,6 @@
 import { ExpenseRepository } from '../storage/repositories/expenseRepository';
 import { Expense, ExpenseCategory } from '../types';
+import { normalizeCurrencySymbol } from '../utils/currency';
 
 export const ExpenseService = {
   async loadExpensesData(householdId: string): Promise<{ expenses: Expense[]; categories: ExpenseCategory[] }> {
@@ -19,12 +20,12 @@ export const ExpenseService = {
     currency: string = '৳'
   ): Promise<Expense> {
     const newExpense: Expense = {
-      id: `exp-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `exp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       householdId,
       categoryId,
       title: title.trim(),
       amount: Number(amount),
-      currency,
+      currency: normalizeCurrencySymbol(currency),
       paidBy,
       date,
       notes: notes?.trim() || undefined,

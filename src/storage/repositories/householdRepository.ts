@@ -1,10 +1,12 @@
 import { getDatabase } from '../database';
+import { normalizeCurrencySymbol } from '../../utils/currency';
 import { Household, HouseholdMember } from '../../types';
 
 export const HouseholdRepository = {
   async getHousehold(): Promise<Household | null> {
     const db = await getDatabase();
-    return await db.getFirstAsync<Household>('SELECT * FROM households LIMIT 1');
+    const household = await db.getFirstAsync<Household>('SELECT * FROM households LIMIT 1');
+    return household ? { ...household, currency: normalizeCurrencySymbol(household.currency) } : null;
   },
 
   async getMembers(householdId: string): Promise<HouseholdMember[]> {
@@ -21,7 +23,7 @@ export const HouseholdRepository = {
     if (household.name && household.id) {
       await db.runAsync(
         'UPDATE households SET name = ?, currency = ?, updatedAt = ? WHERE id = ?',
-        [household.name, household.currency || '৳', now, household.id]
+        [household.name, normalizeCurrencySymbol(household.currency), now, household.id]
       );
     }
   },

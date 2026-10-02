@@ -16,7 +16,7 @@ export const GroceryService = {
     assignedTo?: string
   ): Promise<GroceryItem> {
     const newItem: GroceryItem = {
-      id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       listId,
       name,
       quantity: quantity.trim() || '1',

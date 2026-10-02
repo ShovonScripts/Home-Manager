@@ -38,6 +38,7 @@ export const GroceryRepository = {
     return rows.map((row) => ({
       ...row,
       isCompleted: Boolean(row.isCompleted),
+      assignedTo: row.assignedTo || undefined,
     }));
   },
 

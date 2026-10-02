@@ -1,10 +1,8 @@
 import { HouseholdRepository } from '../storage/repositories/householdRepository';
 import { Household, HouseholdMember } from '../types';
-import { initializeDatabase } from '../storage/database';
 
 export const HouseholdService = {
   async loadHouseholdData(): Promise<{ household: Household | null; members: HouseholdMember[] }> {
-    await initializeDatabase();
     const household = await HouseholdRepository.getHousehold();
     let members: HouseholdMember[] = [];
     if (household) {
@@ -18,12 +16,13 @@ export const HouseholdService = {
   },
 
   async addNewMember(householdId: string, name: string, role: 'admin' | 'member' | 'child' = 'member'): Promise<void> {
+    const now = Date.now();
     const newMember: HouseholdMember = {
-      id: `member-${Date.now()}`,
+      id: `member-${now}-${Math.random().toString(36).slice(2, 10)}`,
       householdId,
       name,
       role,
-      createdAt: Date.now(),
+      createdAt: now,
     };
     await HouseholdRepository.addMember(newMember);
   },

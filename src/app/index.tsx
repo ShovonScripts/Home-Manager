@@ -1,16 +1,25 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useHousehold } from '../context/HouseholdContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { formatCurrency } from '../utils/currency';
 import { Ionicons } from '@expo/vector-icons';
+import { ErrorState, LoadingState } from '../components/common/AsyncState';
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
-  const { household, members, isLoading } = useHousehold();
+  const { household, members, isLoading, error, refreshHousehold } = useHousehold();
 
   const currencySymbol = household?.currency || '৳';
+
+  if (isLoading || error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {isLoading ? <LoadingState /> : <ErrorState message={error!} onRetry={refreshHousehold} />}
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -86,13 +95,6 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Foundation Status Notice */}
-      <View style={[styles.noticeCard, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
-        <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
-        <Text style={[styles.noticeText, { color: colors.onSurfaceVariant }]}>
-          Foundation architecture successfully initialized with SQLite, Expo Router, and centralized theme tokens. Ready for incremental feature development.
-        </Text>
-      </View>
     </ScrollView>
   );
 }
@@ -175,18 +177,5 @@ const styles = StyleSheet.create({
   },
   cardSubtext: {
     fontSize: 11,
-  },
-  noticeCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    gap: Spacing.md,
-  },
-  noticeText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
   },
 });

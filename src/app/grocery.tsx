@@ -12,6 +12,7 @@ import { GroceryProvider, useGrocery } from '../context/GroceryContext';
 import { useTheme } from '../context/ThemeContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { ErrorState, LoadingState } from '../components/common/AsyncState';
 import { GroceryFilterBar } from '../components/grocery/GroceryFilterBar';
 import { GroceryItemCard } from '../components/grocery/GroceryItemCard';
 import { GroceryCategoryChip } from '../components/grocery/GroceryCategoryChip';
@@ -23,6 +24,9 @@ import { GroceryItem } from '../types';
 function GroceryScreenContent() {
   const { colors } = useTheme();
   const {
+    isLoading,
+    error,
+    loadItems,
     items,
     filteredItems,
     searchQuery,
@@ -84,91 +88,98 @@ function GroceryScreenContent() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Search & Header Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
-        <Ionicons name="search" size={18} color={colors.outline} style={styles.searchIcon} />
-        <TextInput
-          style={[styles.searchInput, { color: colors.onSurface }]}
-          placeholder="Search grocery items..."
-          placeholderTextColor={colors.outline}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color={colors.outline} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Filter Tabs */}
-      <GroceryFilterBar />
-
-      {/* Category Horizontal Scroll */}
-      <View style={styles.categoryScrollContainer}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={GROCERY_CATEGORIES}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={
-            <GroceryCategoryChip
-              categoryName="All Categories"
-              isSelected={selectedCategory === null}
-              onPress={() => setCategory(null)}
+      {isLoading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={loadItems} /> : (
+        <>
+          {/* Search & Header Bar */}
+          <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+            <Ionicons name="search" size={18} color={colors.outline} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.onSurface }]}
+              placeholder="Search grocery items..."
+              placeholderTextColor={colors.outline}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
-          }
-          renderItem={({ item }) => (
-            <GroceryCategoryChip
-              categoryName={item.name}
-              isSelected={selectedCategory === item.name}
-              onPress={() => setCategory(selectedCategory === item.name ? null : item.name)}
-            />
-          )}
-        />
-      </View>
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color={colors.outline} />
+              </TouchableOpacity>
+            )}
+          </View>
 
-      {/* Action Header (Item count & Clear completed) */}
-      <View style={styles.actionHeader}>
-        <Text style={[styles.itemCountText, { color: colors.outline }]}>
-          Showing {filteredItems.length} of {items.length} items
-        </Text>
-        {completedCount > 0 && (
-          <TouchableOpacity onPress={handleClearCompleted}>
-            <Text style={[styles.clearText, { color: colors.error }]}>
-              Clear Completed ({completedCount})
+          {/* Filter Tabs */}
+          <GroceryFilterBar />
+
+          {/* Category Horizontal Scroll */}
+          <View style={styles.categoryScrollContainer}>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={GROCERY_CATEGORIES}
+              keyExtractor={(item) => item.id}
+              ListHeaderComponent={
+                <GroceryCategoryChip
+                  categoryName="All Categories"
+                  isSelected={selectedCategory === null}
+                  onPress={() => setCategory(null)}
+                />
+              }
+              renderItem={({ item }) => (
+                <GroceryCategoryChip
+                  categoryName={item.name}
+                  isSelected={selectedCategory === item.name}
+                  onPress={() => setCategory(selectedCategory === item.name ? null : item.name)}
+                />
+              )}
+            />
+          </View>
+
+          {/* Action Header (Item count & Clear completed) */}
+          <View style={styles.actionHeader}>
+            <Text style={[styles.itemCountText, { color: colors.outline }]}>
+              Showing {filteredItems.length} of {items.length} items
             </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+            {completedCount > 0 && (
+              <TouchableOpacity onPress={handleClearCompleted} accessibilityRole="button" accessibilityLabel={`Clear ${completedCount} completed grocery items`}>
+                <Text style={[styles.clearText, { color: colors.error }]}>
+                  Clear Completed ({completedCount})
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-      {/* Grocery Items List (Optimized FlatList) */}
-      <FlatList
-        data={filteredItems}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <GroceryItemCard
-            item={item}
-            onToggle={(id, status) => toggleItem(id, status)}
-            onDelete={(id) => deleteItem(id)}
-            onEdit={(itemObj) => handleOpenEdit(itemObj)}
+          {/* Grocery Items List (Optimized FlatList) */}
+          <FlatList
+            data={filteredItems}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <GroceryItemCard
+                item={item}
+                onToggle={(id, status) => toggleItem(id, status)}
+                onDelete={(id) => deleteItem(id)}
+                onEdit={(itemObj) => handleOpenEdit(itemObj)}
+              />
+            )}
+            ListEmptyComponent={<GroceryEmptyState message="No grocery items found matching your filters." />}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={15}
+            maxToRenderPerBatch={10}
+            windowSize={10}
           />
-        )}
-        ListEmptyComponent={<GroceryEmptyState message="No grocery items found matching your filters." />}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={15}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-      />
 
-      {/* Floating Action Button (FAB) */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
-        onPress={handleOpenAdd}
-      >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
+          {/* Floating Action Button (FAB) */}
+          <TouchableOpacity
+            style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+            onPress={handleOpenAdd}
+            accessibilityRole="button"
+            accessibilityLabel="Add grocery item"
+          >
+            <Ionicons name="add" size={28} color={colors.onPrimary} />
+          </TouchableOpacity>
+
+        </>
+      )}
 
       {/* Reusable Add / Edit Item Modal */}
       <GroceryItemModal

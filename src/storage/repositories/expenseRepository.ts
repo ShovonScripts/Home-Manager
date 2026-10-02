@@ -1,4 +1,5 @@
 import { getDatabase } from '../database';
+import { normalizeCurrencySymbol } from '../../utils/currency';
 import { Expense, ExpenseCategory } from '../../types';
 
 export const ExpenseRepository = {
@@ -17,6 +18,7 @@ export const ExpenseRepository = {
     return rows.map((row) => ({
       ...row,
       amount: Number(row.amount),
+      currency: normalizeCurrencySymbol(row.currency),
     }));
   },
 
@@ -31,7 +33,7 @@ export const ExpenseRepository = {
         expense.categoryId,
         expense.title,
         expense.amount,
-        expense.currency || '৳',
+        normalizeCurrencySymbol(expense.currency),
         expense.paidBy,
         expense.date,
         expense.notes || null,
@@ -45,11 +47,12 @@ export const ExpenseRepository = {
     const db = await getDatabase();
     const now = Date.now();
     await db.runAsync(
-      'UPDATE expenses SET categoryId = ?, title = ?, amount = ?, paidBy = ?, date = ?, notes = ?, updatedAt = ? WHERE id = ?',
+      'UPDATE expenses SET categoryId = ?, title = ?, amount = ?, currency = ?, paidBy = ?, date = ?, notes = ?, updatedAt = ? WHERE id = ?',
       [
         expense.categoryId,
         expense.title,
         expense.amount,
+        normalizeCurrencySymbol(expense.currency),
         expense.paidBy,
         expense.date,
         expense.notes || null,

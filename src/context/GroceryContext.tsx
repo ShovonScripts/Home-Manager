@@ -41,11 +41,11 @@ const initialState: GroceryState = {
 function groceryReducer(state: GroceryState, action: GroceryAction): GroceryState {
   switch (action.type) {
     case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
+      return { ...state, isLoading: action.payload, error: action.payload ? null : state.error };
     case 'SET_ERROR':
       return { ...state, error: action.payload, isLoading: false };
     case 'SET_DATA':
-      return { ...state, list: action.payload.list, items: action.payload.items, isLoading: false };
+      return { ...state, list: action.payload.list, items: action.payload.items, isLoading: false, error: null };
     case 'ADD_ITEM':
       return { ...state, items: [action.payload, ...state.items] };
     case 'UPDATE_ITEM':
@@ -92,22 +92,29 @@ const GroceryContext = createContext<GroceryContextType | undefined>(undefined);
 
 export const GroceryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(groceryReducer, initialState);
-  const { household } = useHousehold();
+  const { household, isLoading: householdIsLoading, error: householdError, refreshHousehold } = useHousehold();
+  const householdId = household?.id;
 
   const loadItems = useCallback(async () => {
-    if (!household) return;
+    if (!householdId) return;
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const data = await GroceryService.getActiveListAndItems(household.id);
+      const data = await GroceryService.getActiveListAndItems(householdId);
       dispatch({ type: 'SET_DATA', payload: data });
     } catch (err: any) {
       dispatch({ type: 'SET_ERROR', payload: err?.message || 'Failed to load grocery items' });
     }
-  }, [household]);
+  }, [householdId]);
 
   useEffect(() => {
-    loadItems();
+    void loadItems();
   }, [loadItems]);
+
+  const retryLoadItems = async () => {
+    // A missing/failed household must be retried too, rather than spinning forever.
+    if (householdError || !householdId) await refreshHousehold();
+    if (householdId) await loadItems();
+  };
 
   const addItem = async (
     name: string,
@@ -207,7 +214,9 @@ export const GroceryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <GroceryContext.Provider
       value={{
         ...state,
-        loadItems,
+        isLoading: householdIsLoading || (Boolean(householdId) && state.isLoading),
+        error: householdError ?? state.error,
+        loadItems: retryLoadItems,
         addItem,
         updateItem,
         deleteItem,

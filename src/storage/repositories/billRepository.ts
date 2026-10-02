@@ -1,4 +1,5 @@
 import { getDatabase } from '../database';
+import { normalizeCurrencySymbol } from '../../utils/currency';
 import { Bill } from '../../types';
 
 export const BillRepository = {
@@ -12,6 +13,7 @@ export const BillRepository = {
     return rows.map((row) => ({
       ...row,
       amount: Number(row.amount),
+      currency: normalizeCurrencySymbol(row.currency),
       isPaid: Boolean(row.isPaid),
     }));
   },
@@ -26,7 +28,7 @@ export const BillRepository = {
         bill.householdId,
         bill.title,
         bill.amount,
-        bill.currency || '৳',
+        normalizeCurrencySymbol(bill.currency),
         bill.dueDate,
         bill.isPaid ? 1 : 0,
         bill.category,
@@ -46,7 +48,7 @@ export const BillRepository = {
       [
         bill.title,
         bill.amount,
-        bill.currency || '৳',
+        normalizeCurrencySymbol(bill.currency),
         bill.dueDate,
         bill.isPaid ? 1 : 0,
         bill.category,

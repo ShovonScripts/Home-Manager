@@ -30,7 +30,7 @@ export interface GroceryItem {
   quantity: string;
   category: string;
   isCompleted: boolean;
-  assignedTo?: string;
+  assignedTo?: string; // member id (legacy local records may contain a name)
   createdAt: number;
 }
 
@@ -48,7 +48,7 @@ export interface Expense {
   title: string;
   amount: number;
   currency: string;
-  paidBy: string; // member id
+  paidBy: string; // member id (legacy local records may contain a name)
   date: number;
   notes?: string;
   createdAt: number;

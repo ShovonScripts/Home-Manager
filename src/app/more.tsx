@@ -79,6 +79,9 @@ export default function MoreScreen() {
             key={index}
             style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
             onPress={() => router.push(item.route)}
+            accessibilityRole="button"
+            accessibilityLabel={item.title}
+            accessibilityHint={item.subtitle}
           >
             <View style={[styles.iconBox, { backgroundColor: item.color + '20' }]}>
               <Ionicons name={item.icon} size={22} color={item.color} />

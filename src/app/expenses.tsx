@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   TextInput,
   TouchableOpacity,
@@ -13,6 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHousehold } from '../context/HouseholdContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { ErrorState, LoadingState } from '../components/common/AsyncState';
 import { ExpenseSummaryCard } from '../components/expenses/ExpenseSummaryCard';
 import { ExpenseCategoryChip } from '../components/expenses/ExpenseCategoryChip';
 import { ExpenseItemCard } from '../components/expenses/ExpenseItemCard';
@@ -24,7 +24,9 @@ function ExpensesScreenContent() {
   const { colors } = useTheme();
   const { household } = useHousehold();
   const {
-    expenses,
+    isLoading,
+    error,
+    loadExpenses,
     filteredExpenses,
     categories,
     searchQuery,
@@ -91,83 +93,90 @@ function ExpensesScreenContent() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Summary Card */}
-      <ExpenseSummaryCard
-        totalAmount={totalAmount}
-        currencySymbol={currencySymbol}
-        selectedMonth={selectedMonth}
-        onMonthChange={setMonthFilter}
-        onAddPress={handleOpenAdd}
-      />
-
-      {/* Search & Header Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
-        <Ionicons name="search" size={18} color={colors.outline} style={styles.searchIcon} />
-        <TextInput
-          style={[styles.searchInput, { color: colors.onSurface }]}
-          placeholder="Search expenses..."
-          placeholderTextColor={colors.outline}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color={colors.outline} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Category Horizontal Scroll */}
-      <View style={styles.categoryScrollContainer}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={categories}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={
-            <ExpenseCategoryChip
-              category={null}
-              isSelected={selectedCategory === null}
-              onPress={() => setCategory(null)}
-            />
-          }
-          renderItem={({ item }) => (
-            <ExpenseCategoryChip
-              category={item}
-              isSelected={selectedCategory === item.id}
-              onPress={() => setCategory(selectedCategory === item.id ? null : item.id)}
-            />
-          )}
-        />
-      </View>
-
-      {/* Expenses Items List */}
-      <FlatList
-        data={filteredExpenses}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ExpenseItemCard
-            expense={item}
-            categories={categories}
-            onEdit={handleOpenEdit}
-            onDelete={handleDelete}
+      {isLoading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={loadExpenses} /> : (
+        <>
+          {/* Summary Card */}
+          <ExpenseSummaryCard
+            totalAmount={totalAmount}
+            currencySymbol={currencySymbol}
+            selectedMonth={selectedMonth}
+            onMonthChange={setMonthFilter}
+            onAddPress={handleOpenAdd}
           />
-        )}
-        ListEmptyComponent={<ExpenseEmptyState message="No expenses found matching your criteria." />}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={15}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-      />
 
-      {/* Floating Action Button (FAB) */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
-        onPress={handleOpenAdd}
-      >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
+          {/* Search & Header Bar */}
+          <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+            <Ionicons name="search" size={18} color={colors.outline} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.onSurface }]}
+              placeholder="Search expenses..."
+              placeholderTextColor={colors.outline}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color={colors.outline} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Category Horizontal Scroll */}
+          <View style={styles.categoryScrollContainer}>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={categories}
+              keyExtractor={(item) => item.id}
+              ListHeaderComponent={
+                <ExpenseCategoryChip
+                  category={null}
+                  isSelected={selectedCategory === null}
+                  onPress={() => setCategory(null)}
+                />
+              }
+              renderItem={({ item }) => (
+                <ExpenseCategoryChip
+                  category={item}
+                  isSelected={selectedCategory === item.id}
+                  onPress={() => setCategory(selectedCategory === item.id ? null : item.id)}
+                />
+              )}
+            />
+          </View>
+
+          {/* Expenses Items List */}
+          <FlatList
+            data={filteredExpenses}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <ExpenseItemCard
+                expense={item}
+                categories={categories}
+                onEdit={handleOpenEdit}
+                onDelete={handleDelete}
+              />
+            )}
+            ListEmptyComponent={<ExpenseEmptyState message="No expenses found matching your criteria." />}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={15}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+          />
+
+          {/* Floating Action Button (FAB) */}
+          <TouchableOpacity
+            style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+            onPress={handleOpenAdd}
+            accessibilityRole="button"
+            accessibilityLabel="Add expense"
+          >
+            <Ionicons name="add" size={28} color={colors.onPrimary} />
+          </TouchableOpacity>
+
+        </>
+      )}
 
       {/* Add / Edit Expense Modal */}
       <ExpenseItemModal

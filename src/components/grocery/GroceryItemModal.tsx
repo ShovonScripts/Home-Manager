@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useEffectEvent } from 'react';
 import {
   StyleSheet,
   Text,
@@ -16,6 +16,7 @@ import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { GROCERY_CATEGORIES } from '../../constants/groceryCategories';
 import { GroceryItem } from '../../types';
+import { getMemberDisplayName } from '../../utils/members';
 
 interface Props {
   visible: boolean;
@@ -38,7 +39,8 @@ export const GroceryItemModal: React.FC<Props> = ({
   const [category, setCategory] = useState('Vegetables');
   const [assignedTo, setAssignedTo] = useState<string | undefined>(undefined);
 
-  useEffect(() => {
+  const editingItemId = itemToEdit?.id;
+  const initializeForm = useEffectEvent(() => {
     if (itemToEdit) {
       setName(itemToEdit.name);
       setQuantity(itemToEdit.quantity || '1');
@@ -50,7 +52,12 @@ export const GroceryItemModal: React.FC<Props> = ({
       setCategory('Vegetables');
       setAssignedTo(undefined);
     }
-  }, [itemToEdit, visible]);
+  });
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- An explicit modal session boundary initializes the draft once.
+    if (visible) initializeForm();
+  }, [visible, editingItemId]);
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -72,7 +79,7 @@ export const GroceryItemModal: React.FC<Props> = ({
             <Text style={[styles.modalTitle, { color: colors.onSurface }]}>
               {isEditing ? 'Edit Grocery Item' : 'Add Grocery Item'}
             </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton} accessibilityRole="button" accessibilityLabel="Close grocery form" hitSlop={8}>
               <Ionicons name="close" size={24} color={colors.onSurface} />
             </TouchableOpacity>
           </View>
@@ -128,6 +135,9 @@ export const GroceryItemModal: React.FC<Props> = ({
                         borderColor: isSelected ? colors.primary : colors.cardBorder,
                       },
                     ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={cat.name}
+                    accessibilityState={{ selected: isSelected }}
                     onPress={() => setCategory(cat.name)}
                   >
                     <Ionicons
@@ -150,7 +160,7 @@ export const GroceryItemModal: React.FC<Props> = ({
             </ScrollView>
 
             {/* Assign To Selection */}
-            <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Assign To</Text>
+            <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>{assignedTo ? `Assign To: ${getMemberDisplayName(assignedTo, members)}` : 'Assign To'}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
               <TouchableOpacity
                 style={[
@@ -160,6 +170,9 @@ export const GroceryItemModal: React.FC<Props> = ({
                     borderColor: assignedTo === undefined ? colors.primary : colors.cardBorder,
                   },
                 ]}
+                accessibilityRole="radio"
+                accessibilityLabel="Unassigned"
+                accessibilityState={{ checked: assignedTo === undefined }}
                 onPress={() => setAssignedTo(undefined)}
               >
                 <Text
@@ -172,7 +185,7 @@ export const GroceryItemModal: React.FC<Props> = ({
                 </Text>
               </TouchableOpacity>
               {members.map((member) => {
-                const isSelected = assignedTo === member.name;
+                const isSelected = assignedTo === member.id;
                 return (
                   <TouchableOpacity
                     key={member.id}
@@ -183,7 +196,10 @@ export const GroceryItemModal: React.FC<Props> = ({
                         borderColor: isSelected ? colors.primary : colors.cardBorder,
                       },
                     ]}
-                    onPress={() => setAssignedTo(member.name)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Assign to ${member.name}`}
+                    accessibilityState={{ checked: isSelected }}
+                    onPress={() => setAssignedTo(member.id)}
                   >
                     <Ionicons
                       name="person-outline"
@@ -211,10 +227,13 @@ export const GroceryItemModal: React.FC<Props> = ({
                 { backgroundColor: colors.primary, opacity: name.trim() ? 1 : 0.6 },
               ]}
               disabled={!name.trim()}
+              accessibilityRole="button"
+              accessibilityLabel={isEditing ? 'Save grocery item' : 'Add grocery item'}
+              accessibilityState={{ disabled: !name.trim() }}
               onPress={handleSave}
             >
-              <Ionicons name={isEditing ? 'checkmark-circle' : 'add-circle'} size={20} color="#FFFFFF" />
-              <Text style={styles.saveButtonText}>
+              <Ionicons name={isEditing ? 'checkmark-circle' : 'add-circle'} size={20} color={colors.onPrimary} />
+              <Text style={[styles.saveButtonText, { color: colors.onPrimary }]}>
                 {isEditing ? 'Save Changes' : 'Add to Grocery List'}
               </Text>
             </TouchableOpacity>
@@ -293,7 +312,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   saveButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },

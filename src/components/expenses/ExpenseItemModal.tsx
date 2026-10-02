@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useEffectEvent } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,6 +15,7 @@ import { useHousehold } from '../../context/HouseholdContext';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Expense, ExpenseCategory } from '../../types';
+import { getMemberDisplayName } from '../../utils/members';
 
 interface Props {
   visible: boolean;
@@ -47,7 +48,8 @@ export const ExpenseItemModal: React.FC<Props> = ({
   const [paidBy, setPaidBy] = useState('');
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
+  const editingExpenseId = expenseToEdit?.id;
+  const initializeForm = useEffectEvent(() => {
     if (expenseToEdit) {
       setTitle(expenseToEdit.title);
       setAmount(expenseToEdit.amount.toString());
@@ -58,20 +60,29 @@ export const ExpenseItemModal: React.FC<Props> = ({
       setTitle('');
       setAmount('');
       setCategoryId(categories[0]?.id || '');
-      setPaidBy(members[0]?.name || 'Primary User');
+      setPaidBy(members[0]?.id || '');
       setNotes('');
     }
-  }, [expenseToEdit, visible, categories, members]);
+  });
+
+  useEffect(() => {
+    // Opening the modal or switching records starts a form session. Context/theme
+    // updates (including new array/object identities) must never replace a draft.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- An explicit modal session boundary initializes the draft once.
+    if (visible) initializeForm();
+  }, [visible, editingExpenseId]);
+
+  const parsedAmount = Number(amount);
+  const canSave = Boolean(title.trim() && categoryId && paidBy && Number.isFinite(parsedAmount) && parsedAmount > 0);
 
   const handleSave = () => {
-    const parsedAmount = parseFloat(amount);
-    if (!title.trim() || isNaN(parsedAmount) || parsedAmount <= 0 || !categoryId) return;
+    if (!canSave) return;
 
     onSave(
       categoryId,
       title.trim(),
       parsedAmount,
-      paidBy || members[0]?.name || 'Primary User',
+      paidBy,
       expenseToEdit ? expenseToEdit.date : Date.now(),
       notes.trim() || undefined
     );
@@ -92,7 +103,7 @@ export const ExpenseItemModal: React.FC<Props> = ({
             <Text style={[styles.modalTitle, { color: colors.onSurface }]}>
               {isEditing ? 'Edit Expense' : 'Add Expense'}
             </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton} accessibilityRole="button" accessibilityLabel="Close expense form" hitSlop={8}>
               <Ionicons name="close" size={24} color={colors.onSurface} />
             </TouchableOpacity>
           </View>
@@ -151,6 +162,9 @@ export const ExpenseItemModal: React.FC<Props> = ({
                         borderColor: isSelected ? colors.primary : colors.cardBorder,
                       },
                     ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={cat.name}
+                    accessibilityState={{ selected: isSelected }}
                     onPress={() => setCategoryId(cat.id)}
                   >
                     <Ionicons
@@ -173,10 +187,10 @@ export const ExpenseItemModal: React.FC<Props> = ({
             </ScrollView>
 
             {/* Paid By Selection */}
-            <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Paid By</Text>
+            <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>{paidBy ? `Paid By: ${getMemberDisplayName(paidBy, members)}` : 'Paid By'}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
               {members.map((member) => {
-                const isSelected = paidBy === member.name;
+                const isSelected = paidBy === member.id;
                 return (
                   <TouchableOpacity
                     key={member.id}
@@ -187,7 +201,10 @@ export const ExpenseItemModal: React.FC<Props> = ({
                         borderColor: isSelected ? colors.primary : colors.cardBorder,
                       },
                     ]}
-                    onPress={() => setPaidBy(member.name)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Paid by ${member.name}`}
+                    accessibilityState={{ checked: isSelected }}
+                    onPress={() => setPaidBy(member.id)}
                   >
                     <Ionicons
                       name="person-outline"
@@ -231,14 +248,17 @@ export const ExpenseItemModal: React.FC<Props> = ({
                 styles.saveButton,
                 {
                   backgroundColor: colors.primary,
-                  opacity: title.trim() && amount && !isNaN(Number(amount)) ? 1 : 0.6,
+                  opacity: canSave ? 1 : 0.6,
                 },
               ]}
-              disabled={!title.trim() || !amount || isNaN(Number(amount))}
+              disabled={!canSave}
+              accessibilityRole="button"
+              accessibilityLabel={isEditing ? 'Save expense' : 'Add expense'}
+              accessibilityState={{ disabled: !canSave }}
               onPress={handleSave}
             >
-              <Ionicons name={isEditing ? 'checkmark-circle' : 'add-circle'} size={20} color="#FFFFFF" />
-              <Text style={styles.saveButtonText}>
+              <Ionicons name={isEditing ? 'checkmark-circle' : 'add-circle'} size={20} color={colors.onPrimary} />
+              <Text style={[styles.saveButtonText, { color: colors.onPrimary }]}>
                 {isEditing ? 'Save Expense' : 'Add Expense'}
               </Text>
             </TouchableOpacity>
@@ -317,7 +337,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   saveButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },

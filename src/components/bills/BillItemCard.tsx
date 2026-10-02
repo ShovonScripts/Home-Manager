@@ -6,7 +6,6 @@ import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { formatCurrency } from '../../utils/currency';
 import { formatDate } from '../../utils/date';
 import { Ionicons } from '@expo/vector-icons';
-import { BILL_CATEGORIES } from '../../constants/billCategories';
 
 interface Props {
   bill: Bill;
@@ -17,10 +16,6 @@ interface Props {
 
 export const BillItemCard: React.FC<Props> = ({ bill, onEdit, onDelete, onTogglePaid }) => {
   const { colors } = useTheme();
-  const categoryObj = BILL_CATEGORIES.find((c) => c.name.toLowerCase() === bill.category.toLowerCase()) || {
-    icon: 'receipt-outline',
-    color: colors.primary,
-  };
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -34,6 +29,10 @@ export const BillItemCard: React.FC<Props> = ({ bill, onEdit, onDelete, onToggle
       {/* Checkbox / Paid Toggle */}
       <TouchableOpacity
         style={styles.checkboxContainer}
+        accessibilityRole="checkbox"
+        accessibilityLabel={`Paid: ${bill.title}`}
+        accessibilityState={{ checked: bill.isPaid }}
+        hitSlop={8}
         onPress={() => onTogglePaid(bill.id, bill.isPaid)}
       >
         <View
@@ -45,13 +44,15 @@ export const BillItemCard: React.FC<Props> = ({ bill, onEdit, onDelete, onToggle
             },
           ]}
         >
-          {bill.isPaid && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+          {bill.isPaid && <Ionicons name="checkmark" size={14} color={colors.onPrimary} />}
         </View>
       </TouchableOpacity>
 
       {/* Main card content is touchable for editing */}
       <TouchableOpacity
         style={styles.cardContent}
+        accessibilityRole="button"
+        accessibilityLabel={`Edit bill: ${bill.title}`}
         onPress={() => onEdit(bill)}
         activeOpacity={0.7}
       >
@@ -60,7 +61,7 @@ export const BillItemCard: React.FC<Props> = ({ bill, onEdit, onDelete, onToggle
             <Text
               style={[
                 styles.title,
-                { color: colors.onSurface },
+                { color: bill.isPaid ? colors.outline : colors.onSurface },
                 bill.isPaid && styles.paidText,
               ]}
               numberOfLines={1}
@@ -97,6 +98,8 @@ export const BillItemCard: React.FC<Props> = ({ bill, onEdit, onDelete, onToggle
       {/* Delete button as a sibling touchable */}
       <TouchableOpacity
         style={styles.deleteButton}
+        accessibilityRole="button"
+        accessibilityLabel={`Delete bill: ${bill.title}`}
         onPress={() => onDelete(bill.id)}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
@@ -150,7 +153,6 @@ const styles = StyleSheet.create({
   },
   paidText: {
     textDecorationLine: 'line-through',
-    color: '#8E9099',
   },
   amount: {
     fontSize: 16,

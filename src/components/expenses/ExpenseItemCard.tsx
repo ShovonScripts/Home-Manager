@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { Expense, ExpenseCategory } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
+import { useHousehold } from '../../context/HouseholdContext';
+import { getMemberDisplayName } from '../../utils/members';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { formatCurrency } from '../../utils/currency';
 import { formatDate } from '../../utils/date';
@@ -16,6 +18,7 @@ interface Props {
 
 export const ExpenseItemCard: React.FC<Props> = ({ expense, categories, onEdit, onDelete }) => {
   const { colors } = useTheme();
+  const { members } = useHousehold();
   const category = categories.find((c) => c.id === expense.categoryId);
 
   return (
@@ -23,6 +26,8 @@ export const ExpenseItemCard: React.FC<Props> = ({ expense, categories, onEdit, 
       {/* Main card content is touchable for editing */}
       <TouchableOpacity
         style={styles.cardContent}
+        accessibilityRole="button"
+        accessibilityLabel={`Edit expense: ${expense.title}`}
         onPress={() => onEdit(expense)}
         activeOpacity={0.7}
       >
@@ -58,7 +63,7 @@ export const ExpenseItemCard: React.FC<Props> = ({ expense, categories, onEdit, 
             {expense.paidBy && (
               <>
                 <Text style={[styles.bullet, { color: colors.outline }]}>•</Text>
-                <Text style={[styles.paidBy, { color: colors.primary }]}>{expense.paidBy}</Text>
+                <Text style={[styles.paidBy, { color: colors.primary }]}>{getMemberDisplayName(expense.paidBy, members)}</Text>
               </>
             )}
           </View>
@@ -74,6 +79,8 @@ export const ExpenseItemCard: React.FC<Props> = ({ expense, categories, onEdit, 
       {/* Delete button is a separate sibling touchable, avoiding nested touchables */}
       <TouchableOpacity
         style={styles.deleteButton}
+        accessibilityRole="button"
+        accessibilityLabel={`Delete expense: ${expense.title}`}
         onPress={() => onDelete(expense.id)}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >

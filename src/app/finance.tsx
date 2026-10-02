@@ -5,12 +5,21 @@ import { useHousehold } from '../context/HouseholdContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { formatCurrency } from '../utils/currency';
 import { Ionicons } from '@expo/vector-icons';
+import { ErrorState, LoadingState } from '../components/common/AsyncState';
 import { router } from 'expo-router';
 
 export default function FinanceScreen() {
   const { colors } = useTheme();
-  const { household } = useHousehold();
+  const { household, isLoading, error, refreshHousehold } = useHousehold();
   const currencySymbol = household?.currency || '৳';
+
+  if (isLoading || error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {isLoading ? <LoadingState /> : <ErrorState message={error!} onRetry={refreshHousehold} />}
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -30,9 +39,11 @@ export default function FinanceScreen() {
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/expenses')}
+          accessibilityRole="button"
+          accessibilityLabel="View household expenses"
         >
-          <Ionicons name="wallet" size={18} color="#FFFFFF" />
-          <Text style={styles.actionButtonText}>View Expenses</Text>
+          <Ionicons name="wallet" size={18} color={colors.onPrimary} />
+          <Text style={[styles.actionButtonText, { color: colors.onPrimary }]}>View Expenses</Text>
         </TouchableOpacity>
       </View>
 
@@ -44,6 +55,8 @@ export default function FinanceScreen() {
       <TouchableOpacity
         style={[styles.navCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
         onPress={() => router.push('/expenses')}
+        accessibilityRole="button"
+        accessibilityLabel="Household expenses"
       >
         <View style={[styles.iconBox, { backgroundColor: colors.primaryContainer }]}>
           <Ionicons name="wallet-outline" size={24} color={colors.primary} />
@@ -61,6 +74,8 @@ export default function FinanceScreen() {
       <TouchableOpacity
         style={[styles.navCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
         onPress={() => router.push('/bills')}
+        accessibilityRole="button"
+        accessibilityLabel="Bills and payments"
       >
         <View style={[styles.iconBox, { backgroundColor: colors.errorContainer }]}>
           <Ionicons name="receipt-outline" size={24} color={colors.error} />
@@ -112,7 +127,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionButtonText: {
-    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
   },

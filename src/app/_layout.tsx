@@ -4,15 +4,21 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { HouseholdProvider } from '../context/HouseholdContext';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DatabaseGate } from '../components/common/DatabaseGate';
+import { BackButton } from '../components/common/BackButton';
+import { Spacing } from '../constants/theme';
 
 function RootLayoutNav() {
   const { colors, themeMode } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
 
   return (
     <>
       <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
       <Tabs
+        backBehavior="history"
         screenOptions={{
           headerStyle: {
             backgroundColor: colors.surface,
@@ -25,8 +31,9 @@ function RootLayoutNav() {
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopColor: colors.cardBorder,
-            height: 60,
-            paddingBottom: 8,
+            // Keep the original 52-point content area above the device safe inset.
+            height: 52 + bottomPadding,
+            paddingBottom: bottomPadding,
             paddingTop: 6,
           },
           tabBarActiveTintColor: colors.primary,
@@ -42,6 +49,7 @@ function RootLayoutNav() {
           name="index"
           options={{
             title: 'Home',
+            tabBarAccessibilityLabel: 'Home',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="home-outline" size={size} color={color} />
             ),
@@ -53,6 +61,7 @@ function RootLayoutNav() {
           name="tasks"
           options={{
             title: 'Tasks',
+            tabBarAccessibilityLabel: 'Tasks',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="checkbox-outline" size={size} color={color} />
             ),
@@ -64,6 +73,7 @@ function RootLayoutNav() {
           name="grocery"
           options={{
             title: 'Grocery',
+            tabBarAccessibilityLabel: 'Grocery',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="basket-outline" size={size} color={color} />
             ),
@@ -75,6 +85,7 @@ function RootLayoutNav() {
           name="finance"
           options={{
             title: 'Finance',
+            tabBarAccessibilityLabel: 'Finance',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="wallet-outline" size={size} color={color} />
             ),
@@ -86,6 +97,7 @@ function RootLayoutNav() {
           name="more"
           options={{
             title: 'More',
+            tabBarAccessibilityLabel: 'More',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="grid-outline" size={size} color={color} />
             ),
@@ -93,8 +105,8 @@ function RootLayoutNav() {
         />
 
         {/* Sub-routes hidden from bottom tab bar */}
-        <Tabs.Screen name="bills" options={{ href: null, title: 'Bills & Payments' }} />
-        <Tabs.Screen name="expenses" options={{ href: null, title: 'Household Expenses' }} />
+        <Tabs.Screen name="bills" options={{ href: null, title: 'Bills & Payments', headerShown: true, headerLeft: () => <BackButton /> }} />
+        <Tabs.Screen name="expenses" options={{ href: null, title: 'Household Expenses', headerShown: true, headerLeft: () => <BackButton /> }} />
         <Tabs.Screen name="calendar" options={{ href: null, title: 'Calendar & Dates' }} />
         <Tabs.Screen name="reminders" options={{ href: null, title: 'Reminders & Medicine' }} />
         <Tabs.Screen name="notes" options={{ href: null, title: 'Shared Notes' }} />
@@ -109,9 +121,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <HouseholdProvider>
-          <RootLayoutNav />
-        </HouseholdProvider>
+        <DatabaseGate>
+          <HouseholdProvider>
+            <RootLayoutNav />
+          </HouseholdProvider>
+        </DatabaseGate>
       </ThemeProvider>
     </SafeAreaProvider>
   );

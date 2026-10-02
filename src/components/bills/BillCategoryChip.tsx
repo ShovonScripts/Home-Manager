@@ -28,6 +28,9 @@ export const BillCategoryChip: React.FC<Props> = ({ category, isSelected, onPres
         },
       ]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={name}
+      accessibilityState={{ selected: isSelected }}
     >
       <Ionicons
         name={icon as any}

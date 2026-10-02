@@ -26,6 +26,9 @@ export const GroceryFilterBar: React.FC = () => {
               isActive && { backgroundColor: colors.surface, shadowColor: colors.shadow },
             ]}
             onPress={() => setFilter(f.value)}
+            accessibilityRole="button"
+            accessibilityLabel={`${f.label} grocery items`}
+            accessibilityState={{ selected: isActive }}
           >
             <Text
               style={[

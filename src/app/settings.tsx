@@ -1,13 +1,22 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Switch } from 'react-native';
+import { StyleSheet, Text, View, Switch } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useHousehold } from '../context/HouseholdContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { ErrorState, LoadingState } from '../components/common/AsyncState';
 
 export default function SettingsScreen() {
   const { colors, themeMode, toggleTheme } = useTheme();
-  const { household, members } = useHousehold();
+  const { household, members, isLoading, error, refreshHousehold } = useHousehold();
+
+  if (isLoading || error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {isLoading ? <LoadingState /> : <ErrorState message={error!} onRetry={refreshHousehold} />}
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -37,6 +46,9 @@ export default function SettingsScreen() {
             <Text style={[styles.label, { color: colors.onSurface, marginLeft: Spacing.md }]}>Dark Mode</Text>
           </View>
           <Switch
+            accessibilityRole="switch"
+            accessibilityLabel="Dark mode"
+            accessibilityState={{ checked: themeMode === 'dark' }}
             value={themeMode === 'dark'}
             onValueChange={toggleTheme}
             trackColor={{ false: colors.outline, true: colors.primary }}

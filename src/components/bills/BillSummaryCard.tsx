@@ -36,13 +36,15 @@ export const BillSummaryCard: React.FC<Props> = ({
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: colors.primary }]}
           onPress={onAddPress}
+          accessibilityRole="button"
+          accessibilityLabel="Add bill"
         >
-          <Ionicons name="add" size={20} color="#FFFFFF" />
-          <Text style={styles.addButtonText}>Add Bill</Text>
+          <Ionicons name="add" size={20} color={colors.onPrimary} />
+          <Text style={[styles.addButtonText, { color: colors.onPrimary }]}>Add Bill</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.statsRow}>
+      <View style={[styles.statsRow, { borderTopColor: colors.cardBorder }]}>
         <View style={styles.statItem}>
           <Text style={[styles.statLabel, { color: colors.onPrimaryContainer }]}>Paid</Text>
           <Text style={[styles.statValue, { color: colors.success }]}>
@@ -92,7 +94,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addButtonText: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -103,7 +104,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.06)',
   },
   statItem: {
     flex: 1,

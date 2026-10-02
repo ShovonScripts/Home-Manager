@@ -4,21 +4,31 @@ import { useTheme } from '../context/ThemeContext';
 import { useHousehold } from '../context/HouseholdContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { ErrorState, LoadingState } from '../components/common/AsyncState';
 
 export default function FamilyScreen() {
   const { colors } = useTheme();
-  const { household, members, addMember, removeMember } = useHousehold();
+  const { household, members, addMember, removeMember, isLoading, error, refreshHousehold } = useHousehold();
   const [newMemberName, setNewMemberName] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
   const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member' | 'child'>('member');
 
   const handleAddMember = async () => {
+    if (isAdding) return;
     if (!newMemberName.trim()) {
       Alert.alert('Error', 'Please enter a member name');
       return;
     }
-    await addMember(newMemberName.trim(), newMemberRole);
-    setNewMemberName('');
-    Alert.alert('Success', 'Family member added successfully!');
+    setIsAdding(true);
+    try {
+      await addMember(newMemberName.trim(), newMemberRole);
+      setNewMemberName('');
+      Alert.alert('Success', 'Family member added successfully!');
+    } catch {
+      // The household error state offers retry; retain the entered member name.
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const handleRemove = (memberId: string, memberName: string) => {
@@ -31,6 +41,14 @@ export default function FamilyScreen() {
       },
     ]);
   };
+
+  if (isLoading || error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {isLoading ? <LoadingState /> : <ErrorState message={error!} onRetry={refreshHousehold} />}
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -73,11 +91,14 @@ export default function FamilyScreen() {
                 },
               ]}
               onPress={() => setNewMemberRole(role)}
+              accessibilityRole="radio"
+              accessibilityLabel={`${role} role`}
+              accessibilityState={{ checked: newMemberRole === role }}
             >
               <Text
                 style={[
                   styles.roleButtonText,
-                  { color: newMemberRole === role ? '#FFFFFF' : colors.onSurface },
+                  { color: newMemberRole === role ? colors.onPrimary : colors.onSurface },
                 ]}
               >
                 {role.charAt(0).toUpperCase() + role.slice(1)}
@@ -89,9 +110,13 @@ export default function FamilyScreen() {
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: colors.primary }]}
           onPress={handleAddMember}
+          disabled={isAdding}
+          accessibilityRole="button"
+          accessibilityLabel="Add family member"
+          accessibilityState={{ disabled: isAdding, busy: isAdding }}
         >
-          <Ionicons name="person-add" size={18} color="#FFFFFF" />
-          <Text style={styles.addButtonText}>Add Member</Text>
+          <Ionicons name="person-add" size={18} color={colors.onPrimary} />
+          <Text style={[styles.addButtonText, { color: colors.onPrimary }]}>Add Member</Text>
         </TouchableOpacity>
       </View>
 
@@ -119,6 +144,9 @@ export default function FamilyScreen() {
               <TouchableOpacity
                 onPress={() => handleRemove(member.id, member.name)}
                 style={styles.deleteButton}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove family member: ${member.name}`}
+                hitSlop={8}
               >
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               </TouchableOpacity>
@@ -199,7 +227,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addButtonText: {
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },

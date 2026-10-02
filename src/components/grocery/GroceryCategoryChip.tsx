@@ -60,6 +60,9 @@ export const GroceryCategoryChip: React.FC<SingleChipProps> = ({
         },
       ]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={categoryName}
+      accessibilityState={{ selected: isSelected }}
     >
       {catObj && (
         <Ionicons

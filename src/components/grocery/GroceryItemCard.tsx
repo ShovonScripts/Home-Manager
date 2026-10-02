@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { GroceryItem } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
+import { useHousehold } from '../../context/HouseholdContext';
+import { getMemberDisplayName } from '../../utils/members';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { GROCERY_CATEGORIES } from '../../constants/groceryCategories';
@@ -15,6 +17,7 @@ interface Props {
 
 export const GroceryItemCard: React.FC<Props> = ({ item, onToggle, onDelete, onEdit }) => {
   const { colors } = useTheme();
+  const { members } = useHousehold();
   const catObj = GROCERY_CATEGORIES.find((c) => c.name === item.category);
 
   return (
@@ -31,6 +34,10 @@ export const GroceryItemCard: React.FC<Props> = ({ item, onToggle, onDelete, onE
       {/* Checkbox / Toggle */}
       <TouchableOpacity
         style={styles.checkboxContainer}
+        accessibilityRole="checkbox"
+        accessibilityLabel={`Purchased: ${item.name}`}
+        accessibilityState={{ checked: item.isCompleted }}
+        hitSlop={8}
         onPress={() => onToggle(item.id, item.isCompleted)}
       >
         <View
@@ -49,6 +56,8 @@ export const GroceryItemCard: React.FC<Props> = ({ item, onToggle, onDelete, onE
       {/* Item Details (Pressable for Edit) */}
       <TouchableOpacity
         style={styles.detailsContainer}
+        accessibilityRole="button"
+        accessibilityLabel={`Edit ${item.name}`}
         onPress={() => onEdit(item)}
         activeOpacity={0.7}
       >
@@ -56,7 +65,7 @@ export const GroceryItemCard: React.FC<Props> = ({ item, onToggle, onDelete, onE
           <Text
             style={[
               styles.itemName,
-              { color: colors.onSurface },
+              { color: item.isCompleted ? colors.outline : colors.onSurface },
               item.isCompleted && styles.completedText,
             ]}
             numberOfLines={1}
@@ -82,14 +91,14 @@ export const GroceryItemCard: React.FC<Props> = ({ item, onToggle, onDelete, onE
           {item.assignedTo && (
             <View style={styles.assigneeBadge}>
               <Ionicons name="person-outline" size={12} color={colors.primary} />
-              <Text style={[styles.assigneeText, { color: colors.primary }]}>{item.assignedTo}</Text>
+              <Text style={[styles.assigneeText, { color: colors.primary }]}>{getMemberDisplayName(item.assignedTo, members)}</Text>
             </View>
           )}
         </View>
       </TouchableOpacity>
 
       {/* Delete Action */}
-      <TouchableOpacity style={styles.deleteButton} onPress={() => onDelete(item.id)}>
+      <TouchableOpacity style={styles.deleteButton} onPress={() => onDelete(item.id)} accessibilityRole="button" accessibilityLabel={`Delete ${item.name}`} hitSlop={8}>
         <Ionicons name="trash-outline" size={18} color={colors.error} />
       </TouchableOpacity>
     </View>
@@ -134,7 +143,6 @@ const styles = StyleSheet.create({
   },
   completedText: {
     textDecorationLine: 'line-through',
-    color: '#8E9099',
   },
   quantityBadge: {
     paddingHorizontal: 8,

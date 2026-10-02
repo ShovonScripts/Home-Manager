@@ -38,11 +38,11 @@ const initialState: BillState = {
 function billReducer(state: BillState, action: BillAction): BillState {
   switch (action.type) {
     case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
+      return { ...state, isLoading: action.payload, error: action.payload ? null : state.error };
     case 'SET_ERROR':
       return { ...state, error: action.payload, isLoading: false };
     case 'SET_BILLS':
-      return { ...state, bills: action.payload, isLoading: false };
+      return { ...state, bills: action.payload, isLoading: false, error: null };
     case 'ADD_BILL':
       return { ...state, bills: [action.payload, ...state.bills] };
     case 'UPDATE_BILL':
@@ -97,22 +97,29 @@ const BillContext = createContext<BillContextType | undefined>(undefined);
 
 export const BillProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(billReducer, initialState);
-  const { household } = useHousehold();
+  const { household, isLoading: householdIsLoading, error: householdError, refreshHousehold } = useHousehold();
+  const householdId = household?.id;
 
   const loadBills = useCallback(async () => {
-    if (!household) return;
+    if (!householdId) return;
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const bills = await BillService.loadBills(household.id);
+      const bills = await BillService.loadBills(householdId);
       dispatch({ type: 'SET_BILLS', payload: bills });
     } catch (err: any) {
       dispatch({ type: 'SET_ERROR', payload: err?.message || 'Failed to load bills' });
     }
-  }, [household]);
+  }, [householdId]);
 
   useEffect(() => {
-    loadBills();
+    void loadBills();
   }, [loadBills]);
+
+  const retryLoadBills = async () => {
+    // A missing/failed household must be retried too, rather than spinning forever.
+    if (householdError || !householdId) await refreshHousehold();
+    if (householdId) await loadBills();
+  };
 
   const addBill = async (
     title: string,
@@ -231,7 +238,9 @@ export const BillProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <BillContext.Provider
       value={{
         ...state,
-        loadBills,
+        isLoading: householdIsLoading || (Boolean(householdId) && state.isLoading),
+        error: householdError ?? state.error,
+        loadBills: retryLoadBills,
         addBill,
         updateBill,
         deleteBill,

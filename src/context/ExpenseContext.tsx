@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback } 
 import { Expense, ExpenseCategory } from '../types';
 import { ExpenseService } from '../services/expenseService';
 import { useHousehold } from './HouseholdContext';
+import { getMemberDisplayName } from '../utils/members';
 
 interface ExpenseState {
   expenses: Expense[];
@@ -44,11 +45,11 @@ const initialState: ExpenseState = {
 function expenseReducer(state: ExpenseState, action: ExpenseAction): ExpenseState {
   switch (action.type) {
     case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
+      return { ...state, isLoading: action.payload, error: action.payload ? null : state.error };
     case 'SET_ERROR':
       return { ...state, error: action.payload, isLoading: false };
     case 'SET_DATA':
-      return { ...state, expenses: action.payload.expenses, categories: action.payload.categories, isLoading: false };
+      return { ...state, expenses: action.payload.expenses, categories: action.payload.categories, isLoading: false, error: null };
     case 'ADD_EXPENSE':
       return { ...state, expenses: [action.payload, ...state.expenses] };
     case 'UPDATE_EXPENSE':
@@ -93,22 +94,29 @@ const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
 export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(expenseReducer, initialState);
-  const { household } = useHousehold();
+  const { household, members, isLoading: householdIsLoading, error: householdError, refreshHousehold } = useHousehold();
+  const householdId = household?.id;
 
   const loadExpenses = useCallback(async () => {
-    if (!household) return;
+    if (!householdId) return;
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const data = await ExpenseService.loadExpensesData(household.id);
+      const data = await ExpenseService.loadExpensesData(householdId);
       dispatch({ type: 'SET_DATA', payload: data });
     } catch (err: any) {
       dispatch({ type: 'SET_ERROR', payload: err?.message || 'Failed to load expenses' });
     }
-  }, [household]);
+  }, [householdId]);
 
   useEffect(() => {
-    loadExpenses();
+    void loadExpenses();
   }, [loadExpenses]);
+
+  const retryLoadExpenses = async () => {
+    // A missing/failed household must be retried too, rather than spinning forever.
+    if (householdError || !householdId) await refreshHousehold();
+    if (householdId) await loadExpenses();
+  };
 
   const addExpense = async (
     categoryId: string,
@@ -174,7 +182,8 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const q = state.searchQuery.toLowerCase();
       const matchTitle = exp.title.toLowerCase().includes(q);
       const matchNotes = exp.notes?.toLowerCase().includes(q) || false;
-      const matchPaidBy = exp.paidBy.toLowerCase().includes(q);
+      const matchPaidBy = getMemberDisplayName(exp.paidBy, members).toLowerCase().includes(q)
+        || exp.paidBy.toLowerCase().includes(q);
       if (!matchTitle && !matchNotes && !matchPaidBy) return false;
     }
 
@@ -198,7 +207,9 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <ExpenseContext.Provider
       value={{
         ...state,
-        loadExpenses,
+        isLoading: householdIsLoading || (Boolean(householdId) && state.isLoading),
+        error: householdError ?? state.error,
+        loadExpenses: retryLoadExpenses,
         addExpense,
         updateExpense,
         deleteExpense,
