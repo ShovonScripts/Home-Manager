@@ -1,15 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GlassCard } from '../components/common/GlassCard';
 
 export default function HelpScreen() {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
 
   const guides = [
     {
@@ -46,21 +43,6 @@ export default function HelpScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header Bar */}
-      <View style={[styles.headerBar, { backgroundColor: colors.surface, borderBottomColor: colors.cardBorder, paddingTop: Math.max(insets.top, 16) }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.onSurface} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.onSurface }]}>How to Use App</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         <View style={[styles.introCard, { backgroundColor: colors.primaryContainer }]}>
           <Ionicons name="book-outline" size={32} color={colors.primary} />
@@ -72,7 +54,7 @@ export default function HelpScreen() {
 
         <View style={styles.guidesList}>
           {guides.map((g, index) => (
-            <View key={index} style={[styles.guideCard, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+            <GlassCard key={index} delay={index * 60}>
               <View style={styles.guideHeader}>
                 <View style={[styles.iconBox, { backgroundColor: g.color + '20' }]}>
                   <Ionicons name={g.icon as any} size={20} color={g.color} />
@@ -80,7 +62,7 @@ export default function HelpScreen() {
                 <Text style={[styles.guideTitle, { color: colors.onSurface }]}>{g.title}</Text>
               </View>
               <Text style={[styles.guideDesc, { color: colors.onSurfaceVariant }]}>{g.desc}</Text>
-            </View>
+            </GlassCard>
           ))}
         </View>
       </ScrollView>

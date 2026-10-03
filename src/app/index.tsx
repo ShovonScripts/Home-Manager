@@ -11,8 +11,13 @@ import { formatCurrency } from '../utils/currency';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '../components/common/AnimatedPressable';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { QuickAddModal } from '../components/common/QuickAddModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GlassCard } from '../components/common/GlassCard';
+import { AmbientBackground } from '../components/common/AmbientBackground';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 
 export default function DashboardScreen() {
   const { colors, themeMode } = useTheme();
@@ -20,6 +25,38 @@ export default function DashboardScreen() {
   const members = useHouseholdStore(state => state.members);
 
   const [isQuickAddVisible, setIsQuickAddVisible] = useState(false);
+  const navigation = useNavigation();
+
+  React.useLayoutEffect(() => {
+    const gradientColors = themeMode === 'dark'
+      ? (['#8B5CF6', '#6366F1'] as const)
+      : (['#620EEA', '#7C3AED'] as const);
+
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          style={styles.headerQuickAddBtn}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setIsQuickAddVisible(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Quick add item"
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerQuickAddGradient}
+          >
+            <Ionicons name="flash" size={14} color="#FFFFFF" />
+            <Text style={styles.headerQuickAddText}>Quick Add</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, colors, themeMode]);
 
   // Pull data and actions from our Zustand stores
   const { tasks, loadTasks } = useTaskStore();
@@ -76,21 +113,24 @@ export default function DashboardScreen() {
   if (hour < 12) greeting = 'Good Morning';
   else if (hour < 18) greeting = 'Good Afternoon';
 
-  let tabBarHeight = 80;
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
+  const tabBarHeight = 52 + bottomPadding;
 
   const currencySymbol = household?.currency || '৳';
   const glassBackground =
     themeMode === 'dark' ? 'rgba(30, 32, 35, 0.85)' : 'rgba(255, 255, 255, 0.9)';
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingBottom: tabBarHeight + Spacing.lg }
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
+    <AmbientBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingBottom: tabBarHeight + Spacing.lg }
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
       {/* Urgent Alert Banner (if overdue bills or due today tasks exist) */}
       {(overdueBills.length > 0 || dueTodayTasks.length > 0) && (
         <Animated.View entering={FadeInDown.duration(300).springify()}>
@@ -161,92 +201,72 @@ export default function DashboardScreen() {
       {/* Summary Cards Grid */}
       <View style={styles.gridContainer}>
         {/* Spending Card */}
-        <Animated.View entering={FadeInDown.duration(400).delay(100).springify()} style={{ width: '48%' }}>
-          <AnimatedPressable
-            style={[
-              styles.card,
-              { backgroundColor: glassBackground, borderColor: colors.cardBorder },
-            ]}
-            onPress={() => router.push('/expenses')}
-            enableHaptic
-          >
-            <View style={[styles.iconContainer, { backgroundColor: colors.primaryContainer }]}>
-              <Ionicons name="wallet" size={22} color={colors.primary} />
-            </View>
-            <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>
-              Household Spending
-            </Text>
-            <Text style={[styles.cardValue, { color: colors.onSurface }]}>
-              {formatCurrency(monthlyExpenses, currencySymbol)}
-            </Text>
-            <Text style={[styles.cardSubtext, { color: colors.outline }]}>This month</Text>
-          </AnimatedPressable>
-        </Animated.View>
+        <GlassCard
+          containerStyle={{ width: '48%' }}
+          onPress={() => router.push('/expenses')}
+          delay={100}
+        >
+          <View style={[styles.iconContainer, { backgroundColor: colors.primaryContainer }]}>
+            <Ionicons name="wallet" size={22} color={colors.primary} />
+          </View>
+          <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>
+            Household Spending
+          </Text>
+          <Text style={[styles.cardValue, { color: colors.onSurface }]}>
+            {formatCurrency(monthlyExpenses, currencySymbol)}
+          </Text>
+          <Text style={[styles.cardSubtext, { color: colors.outline }]}>This month</Text>
+        </GlassCard>
 
         {/* Grocery Card */}
-        <Animated.View entering={FadeInDown.duration(400).delay(150).springify()} style={{ width: '48%' }}>
-          <AnimatedPressable
-            style={[
-              styles.card,
-              { backgroundColor: glassBackground, borderColor: colors.cardBorder },
-            ]}
-            onPress={() => router.push('/grocery')}
-            enableHaptic
-          >
-            <View style={[styles.iconContainer, { backgroundColor: colors.secondaryContainer }]}>
-              <Ionicons name="basket" size={22} color={colors.secondary} />
-            </View>
-            <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>Grocery</Text>
-            <Text style={[styles.cardValue, { color: colors.onSurface }]}>
-              {pendingGroceriesCount} {pendingGroceriesCount === 1 ? 'Item' : 'Items'}
-            </Text>
-            <Text style={[styles.cardSubtext, { color: colors.outline }]}>Pending to buy</Text>
-          </AnimatedPressable>
-        </Animated.View>
+        <GlassCard
+          containerStyle={{ width: '48%' }}
+          onPress={() => router.push('/grocery')}
+          delay={150}
+        >
+          <View style={[styles.iconContainer, { backgroundColor: colors.secondaryContainer }]}>
+            <Ionicons name="basket" size={22} color={colors.secondary} />
+          </View>
+          <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>Grocery</Text>
+          <Text style={[styles.cardValue, { color: colors.onSurface }]}>
+            {pendingGroceriesCount} {pendingGroceriesCount === 1 ? 'Item' : 'Items'}
+          </Text>
+          <Text style={[styles.cardSubtext, { color: colors.outline }]}>Pending to buy</Text>
+        </GlassCard>
 
         {/* Bills Card */}
-        <Animated.View entering={FadeInDown.duration(400).delay(200).springify()} style={{ width: '48%' }}>
-          <AnimatedPressable
-            style={[
-              styles.card,
-              { backgroundColor: glassBackground, borderColor: colors.cardBorder },
-            ]}
-            onPress={() => router.push('/bills')}
-            enableHaptic
-          >
-            <View style={[styles.iconContainer, { backgroundColor: colors.errorContainer }]}>
-              <Ionicons name="receipt" size={22} color={colors.error} />
-            </View>
-            <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>Bills & Payments</Text>
-            <Text style={[styles.cardValue, { color: colors.onSurface }]}>
-              {formatCurrency(unpaidBillsTotal, currencySymbol)}
-            </Text>
-            <Text style={[styles.cardSubtext, { color: colors.outline }]}>
-              {bills.filter(b => !b.isPaid).length} unpaid bills
-            </Text>
-          </AnimatedPressable>
-        </Animated.View>
+        <GlassCard
+          containerStyle={{ width: '48%' }}
+          onPress={() => router.push('/bills')}
+          delay={200}
+        >
+          <View style={[styles.iconContainer, { backgroundColor: colors.errorContainer }]}>
+            <Ionicons name="receipt" size={22} color={colors.error} />
+          </View>
+          <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>Bills & Payments</Text>
+          <Text style={[styles.cardValue, { color: colors.onSurface }]}>
+            {formatCurrency(unpaidBillsTotal, currencySymbol)}
+          </Text>
+          <Text style={[styles.cardSubtext, { color: colors.outline }]}>
+            {bills.filter(b => !b.isPaid).length} unpaid bills
+          </Text>
+        </GlassCard>
 
         {/* Tasks Card */}
-        <Animated.View entering={FadeInDown.duration(400).delay(250).springify()} style={{ width: '48%' }}>
-          <AnimatedPressable
-            style={[
-              styles.card,
-              { backgroundColor: glassBackground, borderColor: colors.cardBorder },
-            ]}
-            onPress={() => router.push('/tasks')}
-            enableHaptic
-          >
-            <View style={[styles.iconContainer, { backgroundColor: colors.successContainer }]}>
-              <Ionicons name="checkbox" size={22} color={colors.success} />
-            </View>
-            <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>Tasks Today</Text>
-            <Text style={[styles.cardValue, { color: colors.onSurface }]}>
-              {pendingTasksCount} {pendingTasksCount === 1 ? 'Task' : 'Tasks'}
-            </Text>
-            <Text style={[styles.cardSubtext, { color: colors.outline }]}>Pending</Text>
-          </AnimatedPressable>
-        </Animated.View>
+        <GlassCard
+          containerStyle={{ width: '48%' }}
+          onPress={() => router.push('/tasks')}
+          delay={250}
+        >
+          <View style={[styles.iconContainer, { backgroundColor: colors.successContainer }]}>
+            <Ionicons name="checkbox" size={22} color={colors.success} />
+          </View>
+          <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>Tasks Today</Text>
+          <Text style={[styles.cardValue, { color: colors.onSurface }]}>
+            {pendingTasksCount} {pendingTasksCount === 1 ? 'Task' : 'Tasks'}
+          </Text>
+          <Text style={[styles.cardSubtext, { color: colors.outline }]}>Pending</Text>
+        </GlassCard>
       </View>
 
       <Text style={[styles.sectionTitle, { color: colors.onBackground, marginTop: Spacing.sm }]}>
@@ -338,12 +358,33 @@ export default function DashboardScreen() {
         onClose={() => setIsQuickAddVisible(false)}
       />
     </ScrollView>
-  );
+  </AmbientBackground>
+);
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerQuickAddBtn: {
+    marginRight: Spacing.md,
+    borderRadius: BorderRadius.round,
+    overflow: 'hidden',
+    ...Shadows.sm,
+  },
+  headerQuickAddGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.round,
+    gap: 5,
+  },
+  headerQuickAddText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   contentContainer: {
     padding: Spacing.lg,
@@ -420,7 +461,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: Spacing.md,
+    rowGap: Spacing.md,
     marginBottom: Spacing.xl,
   },
   card: {

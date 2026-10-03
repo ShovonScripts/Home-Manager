@@ -12,6 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTaskStore, useFilteredTasks } from '../store/useTaskStore';
 import { TaskFilterBar } from '../components/tasks/TaskFilterBar';
 import { TaskCategoryChip } from '../components/tasks/TaskCategoryChip';
@@ -42,7 +43,9 @@ function TasksScreenContent() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  let tabBarHeight = 80;
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
+  const tabBarHeight = 52 + bottomPadding;
 
   React.useEffect(() => {
     if (household?.id) {
@@ -176,8 +179,10 @@ function TasksScreenContent() {
 
       {/* Floating Action Button (FAB) */}
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow, bottom: tabBarHeight + Spacing.md }]}
         onPress={handleOpenAdd}
+        accessibilityRole="button"
+        accessibilityLabel="Add task"
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>

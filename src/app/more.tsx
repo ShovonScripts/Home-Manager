@@ -1,15 +1,18 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { Spacing, BorderRadius, Shadows } from '../constants/theme';
+import { Spacing, BorderRadius } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GlassCard } from '../components/common/GlassCard';
+import { AmbientBackground } from '../components/common/AmbientBackground';
 
 interface MenuItem {
   title: string;
   subtitle: string;
   icon: keyof typeof Ionicons.glyphMap;
-  route: '/bills' | '/calendar' | '/reminders' | '/notes' | '/family' | '/settings' | '/about' | '/help';
+  route: string;
   color: string;
 }
 
@@ -18,7 +21,9 @@ interface MenuItem {
 export default function MoreScreen() {
   const { colors } = useTheme();
 
-  let tabBarHeight = 80;
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
+  const tabBarHeight = 52 + bottomPadding;
 
   const menuItems: MenuItem[] = [
     {
@@ -80,10 +85,11 @@ export default function MoreScreen() {
   ];
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[styles.contentContainer, { paddingBottom: tabBarHeight + Spacing.lg }]}
-    >
+    <AmbientBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: tabBarHeight + Spacing.lg }]}
+      >
       <Text style={[styles.headerTitle, { color: colors.onBackground }]}>
         More Features
       </Text>
@@ -93,10 +99,11 @@ export default function MoreScreen() {
 
       <View style={styles.menuList}>
         {menuItems.map((item, index) => (
-          <TouchableOpacity
+          <GlassCard
             key={index}
-            style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-            onPress={() => router.push(item.route)}
+            style={styles.menuCardRow}
+            onPress={() => router.push(item.route as any)}
+            delay={index * 50}
             accessibilityRole="button"
             accessibilityLabel={item.title}
             accessibilityHint={item.subtitle}
@@ -111,11 +118,12 @@ export default function MoreScreen() {
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.outline} />
-          </TouchableOpacity>
+          </GlassCard>
         ))}
       </View>
     </ScrollView>
-  );
+  </AmbientBackground>
+);
 }
 
 const styles = StyleSheet.create({
@@ -137,13 +145,10 @@ const styles = StyleSheet.create({
   menuList: {
     gap: Spacing.md,
   },
-  menuCard: {
+  menuCardRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    ...Shadows.sm,
   },
   iconBox: {
     width: 44,

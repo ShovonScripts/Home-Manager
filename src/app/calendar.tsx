@@ -13,15 +13,18 @@ import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useCalendarStore } from '../store/useCalendarStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { CalendarCategoryChip } from '../components/calendar/CalendarCategoryChip';
 import { CalendarItemCard } from '../components/calendar/CalendarItemCard';
 import { CalendarModal } from '../components/calendar/CalendarModal';
 import { CalendarEmptyState } from '../components/calendar/CalendarEmptyState';
 import { CALENDAR_CATEGORIES } from '../constants/calendarCategories';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function CalendarScreenContent() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
+  const tabBarHeight = 52 + bottomPadding;
   const household = useHouseholdStore(state => state.household);
   const {
     loadData,
@@ -76,19 +79,6 @@ function CalendarScreenContent() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header Bar with Back Button */}
-      <View style={styles.headerBar}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.onBackground} />
-        </TouchableOpacity>
-        <View style={styles.headerTitles}>
-          <Text style={[styles.headerTitle, { color: colors.onBackground }]}>Important Dates & Events</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.outline }]}>
-            Birthdays, anniversaries & household milestones
-          </Text>
-        </View>
-      </View>
-
       {/* Search Bar */}
       <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
         <Ionicons name="search" size={18} color={colors.outline} style={styles.searchIcon} />
@@ -149,7 +139,7 @@ function CalendarScreenContent() {
           />
         )}
         ListEmptyComponent={<CalendarEmptyState message="No important dates found matching your filters." />}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + Spacing.lg }]}
         showsVerticalScrollIndicator={false}
         initialNumToRender={15}
         maxToRenderPerBatch={10}
@@ -158,8 +148,10 @@ function CalendarScreenContent() {
 
       {/* Floating Action Button (FAB) */}
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow, bottom: tabBarHeight + Spacing.md }]}
         onPress={handleOpenAdd}
+        accessibilityRole="button"
+        accessibilityLabel="Add event or important date"
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>

@@ -20,9 +20,13 @@ import { BillItemCard } from '../components/bills/BillItemCard';
 import { BillModal } from '../components/bills/BillModal';
 import { BillEmptyState } from '../components/bills/BillEmptyState';
 import { BILL_CATEGORIES } from '../constants/billCategories';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function BillsScreenContent() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
+  const tabBarHeight = 52 + bottomPadding;
   const household = useHouseholdStore(state => state.household);
   const {
     isLoading,
@@ -202,7 +206,7 @@ function BillsScreenContent() {
                 onAction={handleOpenAdd}
               />
             }
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + Spacing.lg }]}
             showsVerticalScrollIndicator={false}
             initialNumToRender={15}
             maxToRenderPerBatch={10}
@@ -211,7 +215,7 @@ function BillsScreenContent() {
 
           {/* Floating Action Button (FAB) */}
           <TouchableOpacity
-            style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+            style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow, bottom: tabBarHeight + Spacing.md }]}
             onPress={handleOpenAdd}
             accessibilityRole="button"
             accessibilityLabel="Add bill"

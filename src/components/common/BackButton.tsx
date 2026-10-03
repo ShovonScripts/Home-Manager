@@ -13,7 +13,7 @@ export const BackButton: React.FC = () => {
       style={styles.button}
       onPress={() => {
         if (router.canGoBack()) router.back();
-        else router.replace('/finance');
+        else router.replace('/');
       }}
       accessibilityRole="button"
       accessibilityLabel="Go back"

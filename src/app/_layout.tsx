@@ -42,8 +42,11 @@ function RootLayoutNav() {
           },
         }}
         screenOptions={{
+          headerShadowVisible: false,
           headerStyle: {
             backgroundColor: colors.surface,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.cardBorder,
           },
           headerTintColor: colors.onSurface,
           headerTitleStyle: {
@@ -136,6 +139,8 @@ function RootLayoutNav() {
         <Tabs.Screen name="notes" options={{ href: null, title: 'Shared Notes', headerShown: true, headerLeft: () => <BackButton /> }} />
         <Tabs.Screen name="family" options={{ href: null, title: 'Family Members', headerShown: true, headerLeft: () => <BackButton /> }} />
         <Tabs.Screen name="settings" options={{ href: null, title: 'Settings', headerShown: true, headerLeft: () => <BackButton /> }} />
+        <Tabs.Screen name="help" options={{ href: null, title: 'How to Use App', headerShown: true, headerLeft: () => <BackButton /> }} />
+        <Tabs.Screen name="about" options={{ href: null, title: 'About App', headerShown: true, headerLeft: () => <BackButton /> }} />
       </Tabs>
     </>
   );

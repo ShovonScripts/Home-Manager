@@ -12,6 +12,7 @@ import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useExpenseStore } from '../store/useExpenseStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ErrorState, LoadingState } from '../components/common/AsyncState';
 import { ExpenseSummaryCard } from '../components/expenses/ExpenseSummaryCard';
 import { ExpenseCategoryChip } from '../components/expenses/ExpenseCategoryChip';
@@ -22,6 +23,9 @@ import { ExpenseAnalyticsCard } from '../components/expenses/ExpenseAnalyticsCar
 
 function ExpensesScreenContent() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
+  const tabBarHeight = 52 + bottomPadding;
   const household = useHouseholdStore(state => state.household);
   const {
     isLoading,
@@ -162,7 +166,7 @@ function ExpensesScreenContent() {
                 onAction={handleOpenAdd}
               />
             }
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + Spacing.lg }]}
             showsVerticalScrollIndicator={false}
             initialNumToRender={15}
             maxToRenderPerBatch={10}
@@ -171,7 +175,7 @@ function ExpensesScreenContent() {
 
           {/* Floating Action Button (FAB) */}
           <TouchableOpacity
-            style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+            style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow, bottom: tabBarHeight + Spacing.md }]}
             onPress={handleOpenAdd}
             accessibilityRole="button"
             accessibilityLabel="Add expense"

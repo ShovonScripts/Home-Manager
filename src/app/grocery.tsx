@@ -13,6 +13,7 @@ import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useGroceryStore, useActiveListItems } from '../store/useGroceryStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ErrorState, LoadingState } from '../components/common/AsyncState';
 import { GroceryFilterBar } from '../components/grocery/GroceryFilterBar';
 import { GroceryItemCard } from '../components/grocery/GroceryItemCard';
@@ -46,7 +47,9 @@ function GroceryScreenContent() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
 
-  let tabBarHeight = 80;
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
+  const tabBarHeight = 52 + bottomPadding;
 
   React.useEffect(() => {
     if (household?.id) {
@@ -198,7 +201,7 @@ function GroceryScreenContent() {
 
           {/* Floating Action Button (FAB) */}
           <TouchableOpacity
-            style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+            style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow, bottom: tabBarHeight + Spacing.md }]}
             onPress={handleOpenAdd}
             accessibilityRole="button"
             accessibilityLabel="Add grocery item"

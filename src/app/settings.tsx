@@ -17,6 +17,7 @@ import { HouseholdRepository } from '../storage/repositories/householdRepository
 import { Household } from '../types';
 import { BackupService } from '../services/backupService';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const { colors, themeMode, toggleTheme } = useTheme();
@@ -50,6 +51,10 @@ function SettingsContent({
   household,
   refreshHousehold,
 }: SettingsContentProps) {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
+  const tabBarHeight = 52 + bottomPadding;
+
   const [householdName, setHouseholdName] = useState(household?.name || '');
   const [currency, setCurrency] = useState(household?.currency || '৳');
 
@@ -81,7 +86,8 @@ function SettingsContent({
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[styles.contentContainer, { paddingBottom: tabBarHeight + Spacing.lg }]}
+      showsVerticalScrollIndicator={false}
     >
       {/* Household Settings */}
       <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>

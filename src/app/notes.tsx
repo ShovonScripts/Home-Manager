@@ -13,14 +13,17 @@ import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useNoteStore } from '../store/useNoteStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { NoteItemCard } from '../components/notes/NoteItemCard';
 import { NoteModal } from '../components/notes/NoteModal';
 import { NoteEmptyState } from '../components/notes/NoteEmptyState';
 import { Note } from '../types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function NotesScreenContent() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
+  const tabBarHeight = 52 + bottomPadding;
   const household = useHouseholdStore(state => state.household);
   const {
     loadData,
@@ -81,19 +84,6 @@ function NotesScreenContent() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header Bar with Back Button */}
-      <View style={styles.headerBar}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.onBackground} />
-        </TouchableOpacity>
-        <View style={styles.headerTitles}>
-          <Text style={[styles.headerTitle, { color: colors.onBackground }]}>Shared Household Notes</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.outline }]}>
-            Family noticeboard & important shared info
-          </Text>
-        </View>
-      </View>
-
       {/* Search Bar */}
       <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
         <Ionicons name="search" size={18} color={colors.outline} style={styles.searchIcon} />
@@ -130,7 +120,7 @@ function NotesScreenContent() {
           />
         )}
         ListEmptyComponent={<NoteEmptyState message="No shared notes found matching your search." />}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + Spacing.lg }]}
         showsVerticalScrollIndicator={false}
         initialNumToRender={15}
         maxToRenderPerBatch={10}
@@ -139,8 +129,10 @@ function NotesScreenContent() {
 
       {/* Floating Action Button (FAB) */}
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+        style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow, bottom: tabBarHeight + Spacing.md }]}
         onPress={handleOpenAdd}
+        accessibilityRole="button"
+        accessibilityLabel="Add note"
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>

@@ -12,10 +12,14 @@ import { useTheme } from '../context/ThemeContext';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HouseholdMember } from '../types';
 
 export default function FamilyScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Spacing.sm);
+  const tabBarHeight = 52 + bottomPadding;
   const household = useHouseholdStore(state => state.household);
   const members = useHouseholdStore(state => state.members);
   const addMember = useHouseholdStore(state => state.addMember);
@@ -79,7 +83,8 @@ export default function FamilyScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[styles.contentContainer, { paddingBottom: tabBarHeight + Spacing.lg }]}
+      showsVerticalScrollIndicator={false}
     >
       <View style={[styles.headerCard, { backgroundColor: colors.primaryContainer }]}>
         <Ionicons name="people" size={32} color={colors.primary} />

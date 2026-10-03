@@ -3,13 +3,11 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking } from 'r
 import { useTheme } from '../context/ThemeContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GlassCard } from '../components/common/GlassCard';
 
 export default function AboutScreen() {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
 
   const handleOpenLink = async (url: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -21,21 +19,6 @@ export default function AboutScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header Bar */}
-      <View style={[styles.headerBar, { backgroundColor: colors.surface, borderBottomColor: colors.cardBorder, paddingTop: Math.max(insets.top, 16) }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.onSurface} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.onSurface }]}>About App</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         {/* App Identity */}
         <View style={styles.identitySection}>
@@ -47,7 +30,7 @@ export default function AboutScreen() {
         </View>
 
         {/* Developer Credit */}
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+        <GlassCard containerStyle={{ marginBottom: Spacing.md }} delay={100}>
           <View style={styles.cardHeader}>
             <Ionicons name="code-slash" size={20} color={colors.primary} />
             <Text style={[styles.cardTitle, { color: colors.onSurface }]}>Developer Credit</Text>
@@ -55,10 +38,10 @@ export default function AboutScreen() {
           <Text style={[styles.paragraph, { color: colors.onSurfaceVariant }]}>
             Designed and developed with passion by <Text style={{ fontWeight: '700', color: colors.primary, textDecorationLine: 'underline' }} onPress={() => handleOpenLink('https://www.facebook.com/shovon.5271')}>Shovon</Text>. This project was created to help families and individuals manage their households efficiently without compromising on design or user experience.
           </Text>
-        </View>
+        </GlassCard>
 
         {/* Security & Privacy */}
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+        <GlassCard containerStyle={{ marginBottom: Spacing.md }} delay={200}>
           <View style={styles.cardHeader}>
             <Ionicons name="shield-checkmark" size={20} color={colors.success} />
             <Text style={[styles.cardTitle, { color: colors.onSurface }]}>100% Safe & Private</Text>
@@ -66,10 +49,10 @@ export default function AboutScreen() {
           <Text style={[styles.paragraph, { color: colors.onSurfaceVariant }]}>
             Your data belongs to you. Home Manager is built on an <Text style={{ fontWeight: '700', color: colors.onSurface }}>Offline-First Architecture</Text>. All of your household tasks, groceries, and financial records are securely encrypted and stored locally on your device using SQLite. No cloud tracking, no hidden analytics, and no mandatory internet connection required.
           </Text>
-        </View>
+        </GlassCard>
 
         {/* Support the Developer */}
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
+        <GlassCard containerStyle={{ marginBottom: Spacing.md }} delay={300}>
           <View style={styles.cardHeader}>
             <Ionicons name="cafe" size={20} color="#FF813F" />
             <Text style={[styles.cardTitle, { color: colors.onSurface }]}>Support My Work</Text>
@@ -86,7 +69,7 @@ export default function AboutScreen() {
             <Ionicons name="cafe" size={20} color="#000000" />
             <Text style={styles.coffeeButtonText}>Buy me a coffee</Text>
           </TouchableOpacity>
-        </View>
+        </GlassCard>
 
       </ScrollView>
     </View>
