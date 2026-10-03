@@ -9,32 +9,38 @@ import {
   Alert,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useHousehold } from '../context/HouseholdContext';
+import { useHouseholdStore } from '../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { HouseholdMember } from '../types';
 
 export default function FamilyScreen() {
   const { colors } = useTheme();
-  const { household, members, addMember, updateMember, removeMember } = useHousehold();
+  const household = useHouseholdStore(state => state.household);
+  const members = useHouseholdStore(state => state.members);
+  const addMember = useHouseholdStore(state => state.addMember);
+  const updateMember = useHouseholdStore(state => state.updateMember);
+  const removeMember = useHouseholdStore(state => state.removeMember);
 
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'admin' | 'member' | 'child'>('member');
   const [whatsapp, setWhatsapp] = useState('');
+  const [color, setColor] = useState('#42A5F5');
   const [editingMember, setEditingMember] = useState<HouseholdMember | null>(null);
+
+  const MEMBER_COLORS = ['#42A5F5', '#66BB6A', '#AB47BC', '#FF7043', '#26A69A', '#EC407A', '#FFA726', '#78909C'];
 
   const handleOpenEdit = (member: HouseholdMember) => {
     setEditingMember(member);
     setName(member.name);
-    setRole(member.role);
     setWhatsapp(member.whatsapp || '');
+    setColor(member.color || '#42A5F5');
   };
 
   const handleCancelEdit = () => {
     setEditingMember(null);
     setName('');
-    setRole('member');
     setWhatsapp('');
+    setColor('#42A5F5');
   };
 
   const handleSaveMember = async () => {
@@ -44,15 +50,15 @@ export default function FamilyScreen() {
     }
 
     if (editingMember) {
-      await updateMember({
-        ...editingMember,
-        name: name.trim(),
-        role,
-        whatsapp: whatsapp.trim() || undefined,
-      });
+      await updateMember(
+        editingMember.id,
+        name.trim(),
+        whatsapp.trim() || undefined,
+        color
+      );
       Alert.alert('Success', 'Family member updated successfully!');
     } else {
-      await addMember(name.trim(), role, whatsapp.trim() || undefined);
+      await addMember(name.trim(), whatsapp.trim() || undefined, color);
       Alert.alert('Success', 'Family member added successfully!');
     }
 
@@ -81,7 +87,7 @@ export default function FamilyScreen() {
           {household?.name || 'Household'} Members
         </Text>
         <Text style={[styles.headerSubtitle, { color: colors.onPrimaryContainer }]}>
-          Manage family members, roles, and WhatsApp contacts for task notifications
+          Manage family members and WhatsApp contacts for task & grocery notifications
         </Text>
       </View>
 
@@ -114,36 +120,35 @@ export default function FamilyScreen() {
             styles.input,
             { backgroundColor: colors.surfaceVariant, color: colors.onSurface, borderColor: colors.outline },
           ]}
-          placeholder="WhatsApp Number (e.g. +8801700000000)"
+          placeholder="WhatsApp Number (e.g. +8801712345678)"
           placeholderTextColor={colors.outline}
           keyboardType="phone-pad"
           value={whatsapp}
           onChangeText={setWhatsapp}
         />
+        <Text style={[styles.helperText, { color: colors.outline }]}>
+          💡 Must include country code (e.g. +880, +1) for WhatsApp notify to work.
+        </Text>
 
-        <View style={styles.roleContainer}>
-          {(['admin', 'member', 'child'] as const).map((r) => (
-            <TouchableOpacity
-              key={r}
-              style={[
-                styles.roleButton,
-                {
-                  backgroundColor: role === r ? colors.primary : colors.surfaceVariant,
-                  borderColor: role === r ? colors.primary : colors.cardBorder,
-                },
-              ]}
-              onPress={() => setRole(r)}
-            >
-              <Text
+        {/* Color Picker */}
+        <Text style={[styles.label, { color: colors.onSurfaceVariant, marginTop: Spacing.md }]}>Member Theme Color</Text>
+        <View style={styles.colorPickerRow}>
+          {MEMBER_COLORS.map((c) => {
+            const isSelected = color === c;
+            return (
+              <TouchableOpacity
+                key={c}
                 style={[
-                  styles.roleButtonText,
-                  { color: role === r ? '#FFFFFF' : colors.onSurface },
+                  styles.colorCircle,
+                  { backgroundColor: c },
+                  isSelected && styles.selectedColorCircle,
                 ]}
+                onPress={() => setColor(c)}
               >
-                {r.charAt(0).toUpperCase() + r.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <TouchableOpacity
@@ -168,35 +173,31 @@ export default function FamilyScreen() {
             onPress={() => handleOpenEdit(member)}
             activeOpacity={0.7}
           >
-            <View style={[styles.avatarBox, { backgroundColor: colors.primaryContainer }]}>
-              <Ionicons name="person" size={20} color={colors.primary} />
+            <View style={[styles.avatarBox, { backgroundColor: (member.color || colors.primary) + '20' }]}>
+              <Ionicons name="person" size={20} color={member.color || colors.primary} />
             </View>
             <View style={styles.memberInfo}>
               <Text style={[styles.memberName, { color: colors.onSurface }]}>{member.name}</Text>
               <View style={styles.memberMetaRow}>
-                <Text style={[styles.memberRole, { color: colors.outline }]}>
-                  {member.role.toUpperCase()}
-                </Text>
-                {member.whatsapp && (
-                  <>
-                    <Text style={[styles.bullet, { color: colors.outline }]}>•</Text>
-                    <Ionicons name="logo-whatsapp" size={12} color="#25D366" style={{ marginRight: 2 }} />
+                {member.whatsapp ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="logo-whatsapp" size={12} color="#25D366" style={{ marginRight: 4 }} />
                     <Text style={[styles.whatsappText, { color: colors.outline }]}>{member.whatsapp}</Text>
-                  </>
+                  </View>
+                ) : (
+                  <Text style={[styles.whatsappText, { color: colors.outline }]}>No WhatsApp saved</Text>
                 )}
               </View>
             </View>
-            {members.length > 1 && (
-              <TouchableOpacity
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleRemove(member.id, member.name);
-                }}
-                style={styles.deleteButton}
-              >
-                <Ionicons name="trash-outline" size={20} color={colors.error} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleRemove(member.id, member.name)}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${member.name}`}
+              hitSlop={8}
+            >
+              <Ionicons name="trash-outline" size={18} color={colors.error} />
+            </TouchableOpacity>
           </TouchableOpacity>
         ))}
       </View>
@@ -210,30 +211,29 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
+    paddingBottom: Spacing.xxxl,
   },
   headerCard: {
     padding: Spacing.xl,
     borderRadius: BorderRadius.lg,
-    alignItems: 'center',
     marginBottom: Spacing.xl,
-    ...Shadows.sm,
+    ...Shadows.md,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     marginTop: Spacing.sm,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 13,
-    textAlign: 'center',
+    lineHeight: 18,
   },
   formCard: {
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    ...Shadows.sm,
+    ...Shadows.md,
   },
   formHeaderRow: {
     flexDirection: 'row',
@@ -257,21 +257,29 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: Spacing.md,
   },
-  roleContainer: {
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+  },
+  colorPickerRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.sm,
     marginBottom: Spacing.lg,
   },
-  roleButton: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
+  colorCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.round,
+    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
-  roleButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
+  selectedColorCircle: {
+    borderColor: '#FFFFFF',
+    ...Shadows.sm,
   },
   addButton: {
     flexDirection: 'row',
@@ -318,15 +326,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  memberRole: {
-    fontSize: 12,
-  },
-  bullet: {
-    fontSize: 12,
-    marginHorizontal: 4,
-  },
   whatsappText: {
     fontSize: 12,
+  },
+  helperText: {
+    fontSize: 11,
+    marginTop: -4,
+    marginBottom: Spacing.md,
+    lineHeight: 16,
   },
   deleteButton: {
     padding: Spacing.sm,

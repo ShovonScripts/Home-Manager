@@ -5,12 +5,14 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 interface Props extends TouchableOpacityProps {
   style?: StyleProp<ViewStyle>;
   scaleValue?: number;
+  enableHaptic?: boolean;
 }
 
 export const AnimatedPressable: React.FC<Props> = ({
@@ -19,6 +21,7 @@ export const AnimatedPressable: React.FC<Props> = ({
   onPressIn,
   onPressOut,
   scaleValue = 0.97,
+  enableHaptic = false,
   ...props
 }) => {
   const scale = useSharedValue(1);
@@ -30,6 +33,9 @@ export const AnimatedPressable: React.FC<Props> = ({
   const handlePressIn = (e: any) => {
     // eslint-disable-next-line react-hooks/immutability
     scale.value = withSpring(scaleValue, { damping: 15, stiffness: 300 });
+    if (enableHaptic) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     onPressIn?.(e);
   };
 

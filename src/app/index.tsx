@@ -1,17 +1,82 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useHousehold } from '../context/HouseholdContext';
+import { useHouseholdStore } from '../store/useHouseholdStore';
+import { useTaskStore } from '../store/useTaskStore';
+import { useExpenseStore } from '../store/useExpenseStore';
+import { useBillStore } from '../store/useBillStore';
+import { useGroceryStore } from '../store/useGroceryStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { formatCurrency } from '../utils/currency';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '../components/common/AnimatedPressable';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { router } from 'expo-router';
+import { QuickAddModal } from '../components/common/QuickAddModal';
 
 export default function DashboardScreen() {
   const { colors, themeMode } = useTheme();
-  const { household, members } = useHousehold();
+  const household = useHouseholdStore(state => state.household);
+  const members = useHouseholdStore(state => state.members);
+
+  const [isQuickAddVisible, setIsQuickAddVisible] = useState(false);
+
+  // Pull data and actions from our Zustand stores
+  const { tasks, loadTasks } = useTaskStore();
+  const { expenses, loadData: loadExpenses } = useExpenseStore();
+  const { bills, loadData: loadBills } = useBillStore();
+  const { items: groceryItems, loadData: loadGroceries } = useGroceryStore();
+
+  React.useEffect(() => {
+    if (household?.id) {
+      loadTasks(household.id);
+      loadExpenses(household.id);
+      loadBills(household.id);
+      loadGroceries(household.id);
+    }
+  }, [household?.id, loadTasks, loadExpenses, loadBills, loadGroceries]);
+
+  // Derived metrics for the dashboard
+  const pendingTasksCount = tasks.filter(t => !t.isCompleted).length;
+
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const monthlyExpenses = expenses
+    .filter(e => {
+      const d = new Date(e.date);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    })
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const unpaidBillsTotal = bills
+    .filter(b => !b.isPaid)
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const pendingGroceriesCount = groceryItems.filter(i => !i.isCompleted).length;
+
+  // Urgent alerts calculation
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayTime = todayStart.getTime();
+
+  const overdueBills = bills.filter(b => !b.isPaid && b.dueDate < todayTime);
+  const dueTodayTasks = tasks.filter(t => !t.isCompleted && t.dueDate && t.dueDate >= todayTime && t.dueDate < todayTime + 86400000);
+
+  // Recent activity stream across all stores
+  const recentActivities = [
+    ...tasks.map(t => ({ id: t.id, title: t.title, type: 'Task', time: t.createdAt, icon: 'checkbox', color: colors.success, route: '/tasks' })),
+    ...expenses.map(e => ({ id: e.id, title: `${e.title} (${formatCurrency(e.amount, household?.currency || '৳')})`, type: 'Expense', time: e.createdAt, icon: 'wallet', color: colors.primary, route: '/expenses' })),
+    ...bills.map(b => ({ id: b.id, title: b.title, type: 'Bill', time: b.createdAt, icon: 'receipt', color: colors.error, route: '/bills' })),
+    ...groceryItems.map(g => ({ id: g.id, title: g.name, type: 'Grocery', time: g.createdAt, icon: 'basket', color: colors.secondary, route: '/grocery' })),
+  ].sort((a, b) => b.time - a.time).slice(0, 4);
+
+  // Dynamic greeting
+  const hour = new Date().getHours();
+  let greeting = 'Good Evening';
+  if (hour < 12) greeting = 'Good Morning';
+  else if (hour < 18) greeting = 'Good Afternoon';
+
+  let tabBarHeight = 80;
 
   const currencySymbol = household?.currency || '৳';
   const glassBackground =
@@ -20,9 +85,39 @@ export default function DashboardScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingBottom: tabBarHeight + Spacing.lg }
+      ]}
       showsVerticalScrollIndicator={false}
     >
+      {/* Urgent Alert Banner (if overdue bills or due today tasks exist) */}
+      {(overdueBills.length > 0 || dueTodayTasks.length > 0) && (
+        <Animated.View entering={FadeInDown.duration(300).springify()}>
+          <TouchableOpacity
+            style={[styles.alertBanner, { backgroundColor: colors.errorContainer, borderColor: colors.cardBorder }]}
+            onPress={() => {
+              if (overdueBills.length > 0) router.push('/bills');
+              else router.push('/tasks');
+            }}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="alert-circle" size={20} color={colors.error} />
+            <View style={styles.alertTextContainer}>
+              <Text style={[styles.alertTitle, { color: colors.error }]}>
+                Action Required
+              </Text>
+              <Text style={[styles.alertSubtitle, { color: colors.onSurface }]}>
+                {overdueBills.length > 0
+                  ? `You have ${overdueBills.length} overdue bill(s) pending payment!`
+                  : `You have ${dueTodayTasks.length} task(s) due today.`}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.error} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       {/* Welcome Banner */}
       <Animated.View entering={FadeInDown.duration(400).springify()}>
         <View
@@ -38,7 +133,7 @@ export default function DashboardScreen() {
             <View style={styles.greetingRow}>
               <Ionicons name="sparkles" size={16} color={colors.primary} style={{ marginRight: 6 }} />
               <Text style={[styles.greetingText, { color: colors.onPrimaryContainer }]}>
-                Welcome Back
+                {greeting}
               </Text>
             </View>
             <Text style={[styles.householdName, { color: colors.onPrimaryContainer }]}>
@@ -48,6 +143,7 @@ export default function DashboardScreen() {
           <AnimatedPressable
             style={[styles.memberBadge, { backgroundColor: colors.surface }]}
             onPress={() => router.push('/family')}
+            enableHaptic
           >
             <Ionicons name="people" size={16} color={colors.primary} />
             <Text style={[styles.memberCountText, { color: colors.onSurface }]}>
@@ -72,6 +168,7 @@ export default function DashboardScreen() {
               { backgroundColor: glassBackground, borderColor: colors.cardBorder },
             ]}
             onPress={() => router.push('/expenses')}
+            enableHaptic
           >
             <View style={[styles.iconContainer, { backgroundColor: colors.primaryContainer }]}>
               <Ionicons name="wallet" size={22} color={colors.primary} />
@@ -80,9 +177,9 @@ export default function DashboardScreen() {
               Household Spending
             </Text>
             <Text style={[styles.cardValue, { color: colors.onSurface }]}>
-              {formatCurrency(0, currencySymbol)}
+              {formatCurrency(monthlyExpenses, currencySymbol)}
             </Text>
-            <Text style={[styles.cardSubtext, { color: colors.outline }]}>Tap to view details</Text>
+            <Text style={[styles.cardSubtext, { color: colors.outline }]}>This month</Text>
           </AnimatedPressable>
         </Animated.View>
 
@@ -94,13 +191,16 @@ export default function DashboardScreen() {
               { backgroundColor: glassBackground, borderColor: colors.cardBorder },
             ]}
             onPress={() => router.push('/grocery')}
+            enableHaptic
           >
             <View style={[styles.iconContainer, { backgroundColor: colors.secondaryContainer }]}>
               <Ionicons name="basket" size={22} color={colors.secondary} />
             </View>
             <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>Grocery</Text>
-            <Text style={[styles.cardValue, { color: colors.onSurface }]}>Manage List</Text>
-            <Text style={[styles.cardSubtext, { color: colors.outline }]}>Tap to view items</Text>
+            <Text style={[styles.cardValue, { color: colors.onSurface }]}>
+              {pendingGroceriesCount} {pendingGroceriesCount === 1 ? 'Item' : 'Items'}
+            </Text>
+            <Text style={[styles.cardSubtext, { color: colors.outline }]}>Pending to buy</Text>
           </AnimatedPressable>
         </Animated.View>
 
@@ -112,13 +212,18 @@ export default function DashboardScreen() {
               { backgroundColor: glassBackground, borderColor: colors.cardBorder },
             ]}
             onPress={() => router.push('/bills')}
+            enableHaptic
           >
             <View style={[styles.iconContainer, { backgroundColor: colors.errorContainer }]}>
               <Ionicons name="receipt" size={22} color={colors.error} />
             </View>
             <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>Bills & Payments</Text>
-            <Text style={[styles.cardValue, { color: colors.onSurface }]}>Due Soon</Text>
-            <Text style={[styles.cardSubtext, { color: colors.outline }]}>Tap to view bills</Text>
+            <Text style={[styles.cardValue, { color: colors.onSurface }]}>
+              {formatCurrency(unpaidBillsTotal, currencySymbol)}
+            </Text>
+            <Text style={[styles.cardSubtext, { color: colors.outline }]}>
+              {bills.filter(b => !b.isPaid).length} unpaid bills
+            </Text>
           </AnimatedPressable>
         </Animated.View>
 
@@ -130,36 +235,108 @@ export default function DashboardScreen() {
               { backgroundColor: glassBackground, borderColor: colors.cardBorder },
             ]}
             onPress={() => router.push('/tasks')}
+            enableHaptic
           >
             <View style={[styles.iconContainer, { backgroundColor: colors.successContainer }]}>
               <Ionicons name="checkbox" size={22} color={colors.success} />
             </View>
             <Text style={[styles.cardLabel, { color: colors.onSurfaceVariant }]}>Tasks Today</Text>
-            <Text style={[styles.cardValue, { color: colors.onSurface }]}>Chores</Text>
-            <Text style={[styles.cardSubtext, { color: colors.outline }]}>Tap to view tasks</Text>
+            <Text style={[styles.cardValue, { color: colors.onSurface }]}>
+              {pendingTasksCount} {pendingTasksCount === 1 ? 'Task' : 'Tasks'}
+            </Text>
+            <Text style={[styles.cardSubtext, { color: colors.outline }]}>Pending</Text>
           </AnimatedPressable>
         </Animated.View>
       </View>
 
-      {/* Foundation Status Notice */}
+      <Text style={[styles.sectionTitle, { color: colors.onBackground, marginTop: Spacing.sm }]}>
+        Quick Actions
+      </Text>
+
+      {/* Quick Actions Row */}
       <Animated.View entering={FadeInDown.duration(400).delay(300).springify()}>
-        <View
-          style={[
-            styles.noticeCard,
-            { backgroundColor: glassBackground, borderColor: colors.cardBorder },
-          ]}
+        <TouchableOpacity
+          style={[styles.primaryQuickAddBtn, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+          onPress={() => setIsQuickAddVisible(true)}
+          activeOpacity={0.85}
         >
-          <Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} />
-          <View style={styles.noticeTextContainer}>
-            <Text style={[styles.noticeTitle, { color: colors.onSurface }]}>
-              Secure Offline-First Architecture
-            </Text>
-            <Text style={[styles.noticeText, { color: colors.onSurfaceVariant }]}>
-              Fully operational SQLite repository & domain service layers active. Smooth micro-animations enabled.
-            </Text>
-          </View>
+          <Ionicons name="flash" size={20} color={colors.onPrimary} />
+          <Text style={[styles.primaryQuickAddText, { color: colors.onPrimary }]}>Quick Add Anything</Text>
+        </TouchableOpacity>
+
+        <View style={styles.quickActionRow}>
+          <TouchableOpacity
+            style={[styles.quickActionBtn, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}
+            onPress={() => router.push('/tasks')}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: colors.successContainer }]}>
+              <Ionicons name="checkbox-outline" size={18} color={colors.success} />
+            </View>
+            <Text style={[styles.quickActionText, { color: colors.onSurface }]}>Tasks</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickActionBtn, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}
+            onPress={() => router.push('/grocery')}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: colors.secondaryContainer }]}>
+              <Ionicons name="basket-outline" size={18} color={colors.secondary} />
+            </View>
+            <Text style={[styles.quickActionText, { color: colors.onSurface }]}>Grocery</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickActionBtn, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}
+            onPress={() => router.push('/expenses')}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: colors.primaryContainer }]}>
+              <Ionicons name="wallet-outline" size={18} color={colors.primary} />
+            </View>
+            <Text style={[styles.quickActionText, { color: colors.onSurface }]}>Finance</Text>
+          </TouchableOpacity>
         </View>
       </Animated.View>
+
+      {/* Recent Activity Feed */}
+      {recentActivities.length > 0 && (
+        <>
+          <Text style={[styles.sectionTitle, { color: colors.onBackground, marginTop: Spacing.xl }]}>
+            Recent Activity
+          </Text>
+          <Animated.View entering={FadeInDown.duration(400).delay(350).springify()}>
+            <View style={[styles.activityCard, { backgroundColor: glassBackground, borderColor: colors.cardBorder }]}>
+              {recentActivities.map((act, index) => (
+                <TouchableOpacity
+                  key={act.id}
+                  style={[
+                    styles.activityRow,
+                    index < recentActivities.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.cardBorder }
+                  ]}
+                  onPress={() => router.push(act.route as any)}
+                >
+                  <View style={[styles.activityIconBox, { backgroundColor: act.color + '20' }]}>
+                    <Ionicons name={act.icon as any} size={16} color={act.color} />
+                  </View>
+                  <View style={styles.activityInfo}>
+                    <Text style={[styles.activityTitle, { color: colors.onSurface }]} numberOfLines={1}>
+                      {act.title}
+                    </Text>
+                    <Text style={[styles.activityType, { color: colors.outline }]}>
+                      {new Date(act.time).toLocaleDateString()} • {act.type}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color={colors.outline} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Animated.View>
+        </>
+      )}
+
+      <QuickAddModal
+        visible={isQuickAddVisible}
+        onClose={() => setIsQuickAddVisible(false)}
+      />
     </ScrollView>
   );
 }
@@ -170,7 +347,27 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
+  },
+  alertBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.lg,
+    gap: Spacing.md,
+    ...Shadows.sm,
+  },
+  alertTextContainer: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  alertSubtitle: {
+    fontSize: 12,
   },
   welcomeCard: {
     flexDirection: 'row',
@@ -254,25 +451,74 @@ const styles = StyleSheet.create({
   cardSubtext: {
     fontSize: 11,
   },
-  noticeCard: {
+  quickActionRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: Spacing.lg,
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  primaryQuickAddBtn: {
+    flexDirection: 'row',
+    height: 52,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    gap: 10,
+    ...Shadows.md,
+  },
+  primaryQuickAddText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: Spacing.md,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    gap: Spacing.md,
     ...Shadows.sm,
   },
-  noticeTextContainer: {
+  quickActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.round,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  quickActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  activityCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...Shadows.sm,
+  },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  activityIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activityInfo: {
     flex: 1,
   },
-  noticeTitle: {
+  activityTitle: {
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 2,
   },
-  noticeText: {
-    fontSize: 12,
-    lineHeight: 18,
+  activityType: {
+    fontSize: 11,
   },
 });

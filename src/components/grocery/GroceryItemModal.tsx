@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { useHousehold } from '../../context/HouseholdContext';
+import { useHouseholdStore } from '../../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { GROCERY_CATEGORIES } from '../../constants/groceryCategories';
@@ -32,7 +32,7 @@ export const GroceryItemModal: React.FC<Props> = ({
   onSave,
 }) => {
   const { colors } = useTheme();
-  const { members } = useHousehold();
+  const members = useHouseholdStore(state => state.members);
 
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('1');

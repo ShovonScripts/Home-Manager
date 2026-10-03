@@ -8,9 +8,9 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
-import { BillProvider, useBill, BillStatusFilter } from '../context/BillContext';
 import { useTheme } from '../context/ThemeContext';
-import { useHousehold } from '../context/HouseholdContext';
+import { useHouseholdStore } from '../store/useHouseholdStore';
+import { useBillStore } from '../store/useBillStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorState, LoadingState } from '../components/common/AsyncState';
@@ -20,43 +20,35 @@ import { BillItemCard } from '../components/bills/BillItemCard';
 import { BillModal } from '../components/bills/BillModal';
 import { BillEmptyState } from '../components/bills/BillEmptyState';
 import { BILL_CATEGORIES } from '../constants/billCategories';
-import { Bill } from '../types';
 
 function BillsScreenContent() {
   const { colors } = useTheme();
-  const { household } = useHousehold();
+  const household = useHouseholdStore(state => state.household);
   const {
     isLoading,
     error,
-    loadBills,
-    filteredBills,
-    searchQuery,
-    setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
-    selectedStatus,
-    setSelectedStatus,
-    totalOutstanding,
-    totalPaid,
-    totalOverdue,
+    loadData,
+    bills,
     addBill,
-    updateBill,
+    toggleBillPaid,
     deleteBill,
-    togglePaid,
-  } = useBill();
+  } = useBillStore();
+
+  const [filter, setFilter] = useState<'all' | 'unpaid' | 'paid' | 'overdue'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingBill, setEditingBill] = useState<Bill | null>(null);
+
+  React.useEffect(() => {
+    if (household?.id) {
+      loadData(household.id);
+    }
+  }, [household?.id, loadData]);
 
   const currencySymbol = household?.currency || '৳';
 
   const handleOpenAdd = () => {
-    setEditingBill(null);
-    setIsModalVisible(true);
-  };
-
-  const handleOpenEdit = (bill: Bill) => {
-    setEditingBill(bill);
     setIsModalVisible(true);
   };
 
@@ -67,19 +59,10 @@ function BillsScreenContent() {
     category: string,
     notes?: string
   ) => {
-    if (editingBill) {
-      updateBill({
-        ...editingBill,
-        title,
-        amount,
-        dueDate,
-        category,
-        notes,
-      });
-    } else {
-      addBill(title, amount, dueDate, category, notes, 'monthly', currencySymbol);
+    if (household?.id) {
+       addBill(household.id, title, amount, household.currency, dueDate, category, 'monthly', notes);
     }
-    setEditingBill(null);
+    setIsModalVisible(false);
   };
 
   const handleDelete = (id: string) => {
@@ -93,7 +76,24 @@ function BillsScreenContent() {
     ]);
   };
 
-  const statusFilters: { label: string; value: BillStatusFilter }[] = [
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayTime = todayStart.getTime();
+
+  const filteredBills = bills.filter(b => {
+    if (searchQuery.trim() && !b.title.toLowerCase().includes(searchQuery.toLowerCase()) && !b.notes?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (selectedCategory && b.category !== selectedCategory) return false;
+    if (filter === 'unpaid') return !b.isPaid;
+    if (filter === 'paid') return b.isPaid;
+    if (filter === 'overdue') return !b.isPaid && b.dueDate < todayTime;
+    return true;
+  });
+
+  const totalOutstanding = bills.filter(b => !b.isPaid).reduce((sum, b) => sum + b.amount, 0);
+  const totalPaid = bills.filter(b => b.isPaid).reduce((sum, b) => sum + b.amount, 0);
+  const totalOverdue = bills.filter(b => !b.isPaid && b.dueDate < todayTime).reduce((sum, b) => sum + b.amount, 0);
+
+  const statusFilters: { label: string; value: 'all' | 'unpaid' | 'paid' | 'overdue' }[] = [
     { label: 'All', value: 'all' },
     { label: 'Unpaid', value: 'unpaid' },
     { label: 'Paid', value: 'paid' },
@@ -102,7 +102,7 @@ function BillsScreenContent() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {isLoading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={loadBills} /> : (
+      {isLoading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={() => { if (household) loadData(household.id) }} /> : (
         <>
           {/* Summary Card */}
           <BillSummaryCard
@@ -133,7 +133,7 @@ function BillsScreenContent() {
           {/* Status Filter Tabs */}
           <View style={[styles.statusFilterBar, { backgroundColor: colors.surfaceVariant }]}>
             {statusFilters.map((f) => {
-              const isActive = selectedStatus === f.value;
+              const isActive = filter === f.value;
               return (
                 <TouchableOpacity
                   key={f.value}
@@ -141,7 +141,7 @@ function BillsScreenContent() {
                     styles.statusTab,
                     isActive && { backgroundColor: colors.surface, shadowColor: colors.shadow },
                   ]}
-                  onPress={() => setSelectedStatus(f.value)}
+                  onPress={() => setFilter(f.value)}
                   accessibilityRole="button"
                   accessibilityLabel={`${f.label} bills`}
                   accessibilityState={{ selected: isActive }}
@@ -191,12 +191,17 @@ function BillsScreenContent() {
             renderItem={({ item }) => (
               <BillItemCard
                 bill={item}
-                onEdit={handleOpenEdit}
+                onEdit={() => {}}
                 onDelete={handleDelete}
-                onTogglePaid={(id, isPaid) => togglePaid(id, isPaid)}
+                onTogglePaid={(id, isPaid) => toggleBillPaid(id, isPaid)}
               />
             )}
-            ListEmptyComponent={<BillEmptyState message="No bills found matching your filters." />}
+            ListEmptyComponent={
+              <BillEmptyState
+                message="No bills found matching your filters."
+                onAction={handleOpenAdd}
+              />
+            }
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             initialNumToRender={15}
@@ -217,14 +222,10 @@ function BillsScreenContent() {
         </>
       )}
 
-      {/* Add / Edit Bill Modal */}
+      {/* Add Bill Modal */}
       <BillModal
         visible={isModalVisible}
-        billToEdit={editingBill}
-        onClose={() => {
-          setIsModalVisible(false);
-          setEditingBill(null);
-        }}
+        onClose={() => setIsModalVisible(false)}
         onSave={handleSaveBill}
       />
     </View>
@@ -232,11 +233,7 @@ function BillsScreenContent() {
 }
 
 export default function BillsScreen() {
-  return (
-    <BillProvider>
-      <BillsScreenContent />
-    </BillProvider>
-  );
+  return <BillsScreenContent />;
 }
 
 const styles = StyleSheet.create({

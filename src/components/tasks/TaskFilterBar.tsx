@@ -1,12 +1,13 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { TaskFilter, useTask } from '../../context/TaskContext';
+import { TaskFilter, useTaskStore } from '../../store/useTaskStore';
 import { Spacing, BorderRadius } from '../../constants/theme';
 
 export const TaskFilterBar: React.FC = () => {
   const { colors } = useTheme();
-  const { filter, setFilter } = useTask();
+  const filter = useTaskStore((state) => state.filter);
+  const setFilter = useTaskStore((state) => state.setFilter);
 
   const filters: { label: string; value: TaskFilter }[] = [
     { label: 'All', value: 'all' },

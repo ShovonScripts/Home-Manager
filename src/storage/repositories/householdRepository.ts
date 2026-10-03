@@ -30,8 +30,8 @@ export const HouseholdRepository = {
     const db = await getDatabase();
     const now = Date.now();
     await db.runAsync(
-      'INSERT INTO household_members (id, householdId, name, role, avatarUrl, whatsapp, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [member.id, member.householdId, member.name, member.role, member.avatarUrl || null, member.whatsapp || null, member.createdAt || now, now]
+      'INSERT INTO household_members (id, householdId, name, role, avatarUrl, whatsapp, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [member.id, member.householdId, member.name, 'member', member.avatarUrl || null, member.whatsapp || null, member.color || null, member.createdAt || now, now]
     );
   },
 
@@ -39,8 +39,8 @@ export const HouseholdRepository = {
     const db = await getDatabase();
     const now = Date.now();
     await db.runAsync(
-      'UPDATE household_members SET name = ?, role = ?, whatsapp = ?, updatedAt = ? WHERE id = ?',
-      [member.name, member.role, member.whatsapp || null, now, member.id]
+      'UPDATE household_members SET name = ?, whatsapp = ?, color = ?, updatedAt = ? WHERE id = ?',
+      [member.name, member.whatsapp || null, member.color || null, now, member.id]
     );
   },
 

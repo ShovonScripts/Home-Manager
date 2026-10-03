@@ -8,8 +8,9 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
-import { CalendarProvider, useCalendar } from '../context/CalendarContext';
 import { useTheme } from '../context/ThemeContext';
+import { useHouseholdStore } from '../store/useHouseholdStore';
+import { useCalendarStore } from '../store/useCalendarStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -18,32 +19,29 @@ import { CalendarItemCard } from '../components/calendar/CalendarItemCard';
 import { CalendarModal } from '../components/calendar/CalendarModal';
 import { CalendarEmptyState } from '../components/calendar/CalendarEmptyState';
 import { CALENDAR_CATEGORIES } from '../constants/calendarCategories';
-import { ImportantDate } from '../types';
 
 function CalendarScreenContent() {
   const { colors } = useTheme();
+  const household = useHouseholdStore(state => state.household);
   const {
-    importantDates,
-    filteredDates,
-    searchQuery,
-    setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
-    addImportantDate,
-    updateImportantDate,
-    deleteImportantDate,
-  } = useCalendar();
+    loadData,
+    events,
+    addEvent,
+    deleteEvent,
+  } = useCalendarStore();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingDate, setEditingDate] = useState<ImportantDate | null>(null);
+
+  React.useEffect(() => {
+    if (household?.id) {
+      loadData(household.id);
+    }
+  }, [household?.id, loadData]);
 
   const handleOpenAdd = () => {
-    setEditingDate(null);
-    setIsModalVisible(true);
-  };
-
-  const handleOpenEdit = (item: ImportantDate) => {
-    setEditingDate(item);
     setIsModalVisible(true);
   };
 
@@ -53,18 +51,10 @@ function CalendarScreenContent() {
     category: 'birthday' | 'anniversary' | 'event',
     isRecurringYearly: boolean
   ) => {
-    if (editingDate) {
-      updateImportantDate({
-        ...editingDate,
-        title,
-        date,
-        category,
-        isRecurringYearly,
-      });
-    } else {
-      addImportantDate(title, date, category, isRecurringYearly);
+    if (household?.id) {
+       addEvent(household.id, title, date, isRecurringYearly, category);
     }
-    setEditingDate(null);
+    setIsModalVisible(false);
   };
 
   const handleDelete = (id: string) => {
@@ -73,10 +63,16 @@ function CalendarScreenContent() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => deleteImportantDate(id),
+        onPress: () => deleteEvent(id),
       },
     ]);
   };
+
+  const filteredDates = events.filter(e => {
+    if (searchQuery.trim() && !e.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (selectedCategory && e.category !== selectedCategory) return false;
+    return true;
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -137,7 +133,7 @@ function CalendarScreenContent() {
       {/* Action Header (Item count) */}
       <View style={styles.actionHeader}>
         <Text style={[styles.itemCountText, { color: colors.outline }]}>
-          Showing {filteredDates.length} of {importantDates.length} events
+          Showing {filteredDates.length} of {events.length} events
         </Text>
       </View>
 
@@ -148,7 +144,7 @@ function CalendarScreenContent() {
         renderItem={({ item }) => (
           <CalendarItemCard
             item={item}
-            onEdit={handleOpenEdit}
+            onEdit={() => {}} // Edit temporarily disabled
             onDelete={handleDelete}
           />
         )}
@@ -170,12 +166,10 @@ function CalendarScreenContent() {
 
       {/* Add / Edit Event Modal */}
       <CalendarModal
-        key={editingDate?.id || 'new-event'}
         visible={isModalVisible}
-        itemToEdit={editingDate}
+        itemToEdit={null}
         onClose={() => {
           setIsModalVisible(false);
-          setEditingDate(null);
         }}
         onSave={handleSaveDate}
       />
@@ -184,11 +178,7 @@ function CalendarScreenContent() {
 }
 
 export default function CalendarScreen() {
-  return (
-    <CalendarProvider>
-      <CalendarScreenContent />
-    </CalendarProvider>
-  );
+  return <CalendarScreenContent />;
 }
 
 const styles = StyleSheet.create({

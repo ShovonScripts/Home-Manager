@@ -1,21 +1,35 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { Spacing } from '../../constants/theme';
+import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
   message?: string;
+  onAction?: () => void;
+  actionLabel?: string;
 }
 
-export const ExpenseEmptyState: React.FC<Props> = ({ message = 'No expenses found' }) => {
+export const ExpenseEmptyState: React.FC<Props> = ({ message = 'No expenses found', onAction, actionLabel = 'Log Expense' }) => {
   const { colors } = useTheme();
 
   return (
     <View style={styles.container}>
-      <Ionicons name="wallet-outline" size={56} color={colors.outline} />
+      <View style={[styles.iconBox, { backgroundColor: colors.primaryContainer }]}>
+        <Ionicons name="wallet-outline" size={32} color={colors.primary} />
+      </View>
       <Text style={[styles.title, { color: colors.onSurface }]}>No Expenses Recorded</Text>
       <Text style={[styles.subtitle, { color: colors.outline }]}>{message}</Text>
+      {onAction && (
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+          onPress={onAction}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={18} color={colors.onPrimary} />
+          <Text style={[styles.buttonText, { color: colors.onPrimary }]}>{actionLabel}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -25,16 +39,38 @@ const styles = StyleSheet.create({
     padding: Spacing.xxl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 40,
+    marginTop: 30,
+  },
+  iconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: BorderRadius.round,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    marginTop: Spacing.md,
     marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: 14,
     textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.round,
+    gap: 6,
+    ...Shadows.md,
+  },
+  buttonText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

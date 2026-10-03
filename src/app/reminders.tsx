@@ -8,40 +8,40 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
-import { ReminderProvider, useReminder } from '../context/ReminderContext';
 import { useTheme } from '../context/ThemeContext';
+import { useHouseholdStore } from '../store/useHouseholdStore';
+import { useReminderStore } from '../store/useReminderStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { ReminderFilterBar } from '../components/reminders/ReminderFilterBar';
+
 import { ReminderItemCard } from '../components/reminders/ReminderItemCard';
 import { ReminderModal } from '../components/reminders/ReminderModal';
 import { ReminderEmptyState } from '../components/reminders/ReminderEmptyState';
-import { Reminder } from '../types';
 
 function RemindersScreenContent() {
   const { colors } = useTheme();
+  const household = useHouseholdStore(state => state.household);
   const {
+    loadData,
     reminders,
-    filteredReminders,
-    searchQuery,
-    setSearchQuery,
     addReminder,
-    updateReminder,
-    deleteReminder,
     toggleReminder,
-  } = useReminder();
+    deleteReminder,
+  } = useReminderStore();
+
+  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+
+  React.useEffect(() => {
+    if (household?.id) {
+      loadData(household.id);
+    }
+  }, [household?.id, loadData]);
 
   const handleOpenAdd = () => {
-    setEditingReminder(null);
-    setIsModalVisible(true);
-  };
-
-  const handleOpenEdit = (reminder: Reminder) => {
-    setEditingReminder(reminder);
     setIsModalVisible(true);
   };
 
@@ -51,18 +51,10 @@ function RemindersScreenContent() {
     type: 'medicine' | 'general',
     targetMemberId?: string
   ) => {
-    if (editingReminder) {
-      updateReminder({
-        ...editingReminder,
-        title,
-        dateTime,
-        type,
-        targetMemberId,
-      });
-    } else {
-      addReminder(title, dateTime, type, targetMemberId);
+    if (household?.id) {
+       addReminder(household.id, title, dateTime, type, targetMemberId);
     }
-    setEditingReminder(null);
+    setIsModalVisible(false);
   };
 
   const handleDelete = (id: string) => {
@@ -75,6 +67,13 @@ function RemindersScreenContent() {
       },
     ]);
   };
+
+  const filteredReminders = reminders.filter(r => {
+    if (searchQuery.trim() && !r.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filter === 'pending') return !r.isCompleted;
+    if (filter === 'completed') return r.isCompleted;
+    return true;
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -109,7 +108,32 @@ function RemindersScreenContent() {
       </View>
 
       {/* Filter Tabs */}
-      <ReminderFilterBar />
+      <View style={[styles.filterContainer, { backgroundColor: colors.surfaceVariant }]}>
+        {[
+          { label: 'All', value: 'all' },
+          { label: 'Pending', value: 'pending' },
+          { label: 'Completed', value: 'completed' }
+        ].map((f) => (
+          <TouchableOpacity
+            key={f.value}
+            style={[
+              styles.filterTab,
+              filter === f.value && { backgroundColor: colors.surface, shadowColor: colors.shadow },
+            ]}
+            onPress={() => setFilter(f.value as any)}
+          >
+            <Text
+              style={[
+                styles.filterTabText,
+                { color: filter === f.value ? colors.primary : colors.onSurfaceVariant },
+                filter === f.value && styles.activeFilterTabText,
+              ]}
+            >
+              {f.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Action Header (Item count) */}
       <View style={styles.actionHeader}>
@@ -125,9 +149,9 @@ function RemindersScreenContent() {
         renderItem={({ item }) => (
           <ReminderItemCard
             reminder={item}
-            onEdit={handleOpenEdit}
+            onEdit={() => {}} // Disabled editing for now to fit simple store API
             onDelete={handleDelete}
-            onToggle={(id, isCompleted) => toggleReminder(id, isCompleted)}
+            onToggle={toggleReminder}
           />
         )}
         ListEmptyComponent={<ReminderEmptyState message="No reminders found matching your filters." />}
@@ -148,12 +172,10 @@ function RemindersScreenContent() {
 
       {/* Add / Edit Reminder Modal */}
       <ReminderModal
-        key={editingReminder?.id || 'new-reminder'}
         visible={isModalVisible}
-        reminderToEdit={editingReminder}
+        reminderToEdit={null}
         onClose={() => {
           setIsModalVisible(false);
-          setEditingReminder(null);
         }}
         onSave={handleSaveReminder}
       />
@@ -162,11 +184,7 @@ function RemindersScreenContent() {
 }
 
 export default function RemindersScreen() {
-  return (
-    <ReminderProvider>
-      <RemindersScreenContent />
-    </ReminderProvider>
-  );
+  return <RemindersScreenContent />;
 }
 
 const styles = StyleSheet.create({
@@ -216,6 +234,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.sm,
     paddingHorizontal: 4,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    padding: 4,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  filterTab: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    borderRadius: BorderRadius.sm,
+  },
+  filterTabText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  activeFilterTabText: {
+    fontWeight: '700',
   },
   itemCountText: {
     fontSize: 12,

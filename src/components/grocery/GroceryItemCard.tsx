@@ -1,11 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Linking, Alert } from 'react-native';
 import { GroceryItem } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
-import { useHousehold } from '../../context/HouseholdContext';
+import { useHouseholdStore } from '../../store/useHouseholdStore';
 import { getMemberDisplayName } from '../../utils/members';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { GROCERY_CATEGORIES } from '../../constants/groceryCategories';
 
 interface Props {
@@ -17,8 +18,22 @@ interface Props {
 
 export const GroceryItemCard: React.FC<Props> = ({ item, onToggle, onDelete, onEdit }) => {
   const { colors } = useTheme();
-  const { members } = useHousehold();
+  const members = useHouseholdStore(state => state.members);
   const catObj = GROCERY_CATEGORIES.find((c) => c.name === item.category);
+
+  const assignedMember = item.assignedTo ? members.find(m => m.id === item.assignedTo || m.name === item.assignedTo) : undefined;
+  const hasWhatsapp = Boolean(assignedMember?.whatsapp);
+
+  const handleNotify = () => {
+    if (!assignedMember?.whatsapp) return;
+    const phone = assignedMember.whatsapp.replace(/[^0-9]/g, '');
+    const text = encodeURIComponent(
+      `Hello ${assignedMember.name}! Just a quick reminder to pick up this grocery item: *${item.name}* (Qty: ${item.quantity}).`
+    );
+    Linking.openURL(`https://wa.me/${phone}?text=${text}`).catch(() => {
+      Alert.alert('Notice', 'Could not open WhatsApp.');
+    });
+  };
 
   return (
     <View
@@ -38,7 +53,10 @@ export const GroceryItemCard: React.FC<Props> = ({ item, onToggle, onDelete, onE
         accessibilityLabel={`Purchased: ${item.name}`}
         accessibilityState={{ checked: item.isCompleted }}
         hitSlop={8}
-        onPress={() => onToggle(item.id, item.isCompleted)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onToggle(item.id, item.isCompleted);
+        }}
       >
         <View
           style={[
@@ -89,9 +107,21 @@ export const GroceryItemCard: React.FC<Props> = ({ item, onToggle, onDelete, onE
             </View>
           )}
           {item.assignedTo && (
-            <View style={styles.assigneeBadge}>
-              <Ionicons name="person-outline" size={12} color={colors.primary} />
-              <Text style={[styles.assigneeText, { color: colors.primary }]}>{getMemberDisplayName(item.assignedTo, members)}</Text>
+            <View style={styles.assigneeContainer}>
+              <View style={[styles.assigneeBadge, { backgroundColor: (assignedMember?.color || colors.primary) + '15', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }]}>
+                <Ionicons name="person-outline" size={12} color={assignedMember?.color || colors.primary} />
+                <Text style={[styles.assigneeText, { color: assignedMember?.color || colors.primary, fontWeight: '600' }]}>{getMemberDisplayName(item.assignedTo, members)}</Text>
+              </View>
+              {hasWhatsapp && (
+                <TouchableOpacity
+                  onPress={handleNotify}
+                  style={styles.notifyButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="logo-whatsapp" size={14} color="#25D366" />
+                  <Text style={styles.notifyText}>Notify</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -170,6 +200,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  assigneeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  notifyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 4,
+  },
+  notifyText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#2E7D32',
   },
   assigneeText: {
     fontSize: 11,

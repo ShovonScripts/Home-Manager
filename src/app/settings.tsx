@@ -10,15 +10,18 @@ import {
   Alert,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useHousehold } from '../context/HouseholdContext';
+import { useHouseholdStore } from '../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { HouseholdRepository } from '../storage/repositories/householdRepository';
 import { Household } from '../types';
+import { BackupService } from '../services/backupService';
+import * as Haptics from 'expo-haptics';
 
 export default function SettingsScreen() {
   const { colors, themeMode, toggleTheme } = useTheme();
-  const { household, refreshHousehold } = useHousehold();
+  const household = useHouseholdStore(state => state.household);
+  const loadHousehold = useHouseholdStore(state => state.loadHousehold);
 
   return (
     <SettingsContent
@@ -27,7 +30,7 @@ export default function SettingsScreen() {
       themeMode={themeMode}
       toggleTheme={toggleTheme}
       household={household}
-      refreshHousehold={refreshHousehold}
+      refreshHousehold={() => loadHousehold()}
     />
   );
 }
@@ -61,7 +64,7 @@ function SettingsContent({
         name: householdName.trim(),
         currency,
       });
-      await refreshHousehold();
+
       Alert.alert('Success', 'Household settings updated successfully!');
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to update household settings');
@@ -149,6 +152,25 @@ function SettingsContent({
             thumbColor={colors.surface}
           />
         </View>
+      </View>
+
+      {/* App Info */}
+      <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+        <Text style={[styles.sectionHeader, { color: colors.primary }]}>Data Backup & Safety</Text>
+        <Text style={[styles.backupDesc, { color: colors.onSurfaceVariant }]}>
+          Since all your household records are stored locally on your device for maximum privacy, you can export a secure JSON backup file anytime to save to your cloud drive or share.
+        </Text>
+        <TouchableOpacity
+          style={[styles.backupButton, { backgroundColor: colors.surfaceVariant, borderColor: colors.cardBorder }]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            BackupService.exportBackup();
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="cloud-upload-outline" size={18} color={colors.primary} />
+          <Text style={[styles.backupButtonText, { color: colors.primary }]}>Export Database Backup (.JSON)</Text>
+        </TouchableOpacity>
       </View>
 
       {/* App Info */}
@@ -266,5 +288,24 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 14,
     fontWeight: '400',
+  },
+  backupDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: Spacing.md,
+  },
+  backupButton: {
+    flexDirection: 'row',
+    height: 46,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    ...Shadows.sm,
+  },
+  backupButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

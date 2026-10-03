@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { Expense, ExpenseCategory } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
-import { useHousehold } from '../../context/HouseholdContext';
+import { useHouseholdStore } from '../../store/useHouseholdStore';
 import { getMemberDisplayName } from '../../utils/members';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { formatCurrency } from '../../utils/currency';
@@ -18,7 +18,7 @@ interface Props {
 
 export const ExpenseItemCard: React.FC<Props> = ({ expense, categories, onEdit, onDelete }) => {
   const { colors } = useTheme();
-  const { members } = useHousehold();
+  const members = useHouseholdStore(state => state.members);
   const category = categories.find((c) => c.id === expense.categoryId);
 
   return (

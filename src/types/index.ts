@@ -10,9 +10,9 @@ export interface HouseholdMember {
   id: string;
   householdId: string;
   name: string;
-  role: 'admin' | 'member' | 'child';
   avatarUrl?: string;
   whatsapp?: string;
+  color?: string; // Custom color for member badges & assignment highlights
   createdAt: number;
 }
 
@@ -97,6 +97,7 @@ export interface Reminder {
   type: 'medicine' | 'general';
   targetMemberId?: string;
   createdAt: number;
+  notificationId?: string; // Link to the local push notification
 }
 
 export interface ImportantDate {

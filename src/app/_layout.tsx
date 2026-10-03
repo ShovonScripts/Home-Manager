@@ -3,22 +3,44 @@ import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
-import { HouseholdProvider } from '../context/HouseholdContext';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DatabaseGate } from '../components/common/DatabaseGate';
 import { BackButton } from '../components/common/BackButton';
 import { Spacing } from '../constants/theme';
+import { useHouseholdStore } from '../store/useHouseholdStore';
+import { useTaskStore } from '../store/useTaskStore';
+import { useBillStore } from '../store/useBillStore';
+import { NotificationService } from '../services/notificationService';
+import * as Haptics from 'expo-haptics';
 
 function RootLayoutNav() {
   const { colors, themeMode } = useTheme();
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(insets.bottom, Spacing.sm);
 
+  const loadHousehold = useHouseholdStore(state => state.loadHousehold);
+  const tasks = useTaskStore(state => state.tasks);
+  const bills = useBillStore(state => state.bills);
+
+  const pendingTasksCount = tasks.filter(t => !t.isCompleted).length;
+  const unpaidBillsCount = bills.filter(b => !b.isPaid).length;
+
+  React.useEffect(() => {
+    loadHousehold();
+    // Ask for push notification permissions on boot
+    NotificationService.registerForPushNotificationsAsync();
+  }, [loadHousehold]);
+
   return (
     <>
       <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
       <Tabs
         backBehavior="history"
+        screenListeners={{
+          tabPress: () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          },
+        }}
         screenOptions={{
           headerStyle: {
             backgroundColor: colors.surface,
@@ -62,6 +84,7 @@ function RootLayoutNav() {
           options={{
             title: 'Tasks',
             tabBarAccessibilityLabel: 'Tasks',
+            tabBarBadge: pendingTasksCount > 0 ? pendingTasksCount : undefined,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="checkbox-outline" size={size} color={color} />
             ),
@@ -86,6 +109,7 @@ function RootLayoutNav() {
           options={{
             title: 'Finance',
             tabBarAccessibilityLabel: 'Finance',
+            tabBarBadge: unpaidBillsCount > 0 ? unpaidBillsCount : undefined,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="wallet-outline" size={size} color={color} />
             ),
@@ -122,9 +146,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <DatabaseGate>
-          <HouseholdProvider>
-            <RootLayoutNav />
-          </HouseholdProvider>
+          <RootLayoutNav />
         </DatabaseGate>
       </ThemeProvider>
     </SafeAreaProvider>

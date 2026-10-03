@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { useHousehold } from '../../context/HouseholdContext';
+import { useHouseholdStore } from '../../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Reminder } from '../../types';
@@ -36,7 +36,7 @@ export const ReminderModal: React.FC<Props> = ({
   onSave,
 }) => {
   const { colors } = useTheme();
-  const { members } = useHousehold();
+  const members = useHouseholdStore(state => state.members);
 
   const [title, setTitle] = useState(reminderToEdit?.title || '');
   const [type, setType] = useState<'medicine' | 'general'>(reminderToEdit?.type || 'general');

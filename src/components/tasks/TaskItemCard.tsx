@@ -1,10 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Task, TaskCategory } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
+import { useHouseholdStore } from '../../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { formatDate } from '../../utils/date';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { TASK_CATEGORIES } from '../../constants/taskCategories';
 
 interface Props {
@@ -17,6 +19,7 @@ interface Props {
 
 export const TaskItemCard: React.FC<Props> = ({ task, categories, onEdit, onDelete, onToggle }) => {
   const { colors } = useTheme();
+  const members = useHouseholdStore(state => state.members);
   const category = categories.find((c) => c.id === task.categoryId);
   const config = TASK_CATEGORIES.find((c) => c.name === (category?.name || '')) || {
     icon: 'checkbox-outline',
@@ -30,12 +33,29 @@ export const TaskItemCard: React.FC<Props> = ({ task, categories, onEdit, onDele
   const isDueToday = task.dueDate && task.dueDate >= todayTime && task.dueDate < todayTime + 86400000;
   const isOverdue = task.dueDate && !task.isCompleted && task.dueDate < todayTime;
 
+  const assignedMember = task.assignedTo ? members.find(m => m.name === task.assignedTo) : undefined;
+  const hasWhatsapp = Boolean(assignedMember?.whatsapp);
+
+  const handleNotify = () => {
+    if (!assignedMember?.whatsapp) return;
+    const phone = assignedMember.whatsapp.replace(/[^0-9]/g, '');
+    const text = encodeURIComponent(
+      `Hello ${assignedMember.name}! Just a quick reminder about your task: *${task.title}*.`
+    );
+    Linking.openURL(`https://wa.me/${phone}?text=${text}`).catch(() => {
+      Alert.alert('Notice', 'Could not open WhatsApp.');
+    });
+  };
+
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
       {/* Checkbox / Completion Toggle */}
       <TouchableOpacity
         style={styles.checkboxContainer}
-        onPress={() => onToggle(task.id, task.isCompleted)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onToggle(task.id, task.isCompleted);
+        }}
       >
         <View
           style={[
@@ -105,7 +125,17 @@ export const TaskItemCard: React.FC<Props> = ({ task, categories, onEdit, onDele
             {task.assignedTo && (
               <>
                 <Text style={[styles.bullet, { color: colors.outline }]}>•</Text>
-                <Text style={[styles.assignedTo, { color: colors.primary }]}>{task.assignedTo}</Text>
+                <Text style={[styles.assignedTo, { color: assignedMember?.color || colors.primary, fontWeight: '600' }]}>{task.assignedTo}</Text>
+                {hasWhatsapp && (
+                  <TouchableOpacity
+                    onPress={handleNotify}
+                    style={styles.notifyButton}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="logo-whatsapp" size={14} color="#25D366" />
+                    <Text style={styles.notifyText}>Notify</Text>
+                  </TouchableOpacity>
+                )}
               </>
             )}
           </View>
@@ -202,5 +232,20 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: Spacing.sm,
     marginLeft: Spacing.xs,
+  },
+  notifyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: Spacing.sm,
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 4,
+  },
+  notifyText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#2E7D32',
   },
 });

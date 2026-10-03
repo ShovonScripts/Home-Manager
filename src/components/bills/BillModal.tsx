@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { useHousehold } from '../../context/HouseholdContext';
+import { useHouseholdStore } from '../../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { BILL_CATEGORIES } from '../../constants/billCategories';
@@ -33,7 +33,7 @@ interface Props {
 
 export const BillModal: React.FC<Props> = ({ visible, billToEdit, onClose, onSave }) => {
   const { colors } = useTheme();
-  const { household } = useHousehold();
+  const household = useHouseholdStore(state => state.household);
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');

@@ -1,93 +1,65 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useHousehold } from '../context/HouseholdContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { formatCurrency } from '../utils/currency';
 import { Ionicons } from '@expo/vector-icons';
-import { ErrorState, LoadingState } from '../components/common/AsyncState';
 import { router } from 'expo-router';
+import { AnimatedPressable } from '../components/common/AnimatedPressable';
+import { PdfReportService } from '../services/pdfReportService';
+import * as Haptics from 'expo-haptics';
 
 export default function FinanceScreen() {
   const { colors } = useTheme();
-  const { household, isLoading, error, refreshHousehold } = useHousehold();
-  const currencySymbol = household?.currency || '৳';
 
-  if (isLoading || error) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {isLoading ? <LoadingState /> : <ErrorState message={error!} onRetry={refreshHousehold} />}
-      </View>
-    );
-  }
+  const tabBarHeight = 80;
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[styles.contentContainer, { paddingBottom: tabBarHeight + Spacing.lg }]}
     >
-      {/* Finance Header Card */}
-      <View style={[styles.headerCard, { backgroundColor: colors.primaryContainer }]}>
-        <View>
-          <Text style={[styles.headerSubtitle, { color: colors.onPrimaryContainer }]}>
-            Total Household Finance
-          </Text>
-          <Text style={[styles.headerTitle, { color: colors.onPrimaryContainer }]}>
-            {formatCurrency(0, currencySymbol)}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/expenses')}
-          accessibilityRole="button"
-          accessibilityLabel="View household expenses"
+      <Text style={[styles.header, { color: colors.onBackground }]}>Financial Hub</Text>
+
+      <View style={styles.grid}>
+        <AnimatedPressable
+          enableHaptic
+          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}
+          onPress={() => router.push('/bills')}
         >
-          <Ionicons name="wallet" size={18} color={colors.onPrimary} />
-          <Text style={[styles.actionButtonText, { color: colors.onPrimary }]}>View Expenses</Text>
-        </TouchableOpacity>
+          <View style={[styles.iconWrapper, { backgroundColor: colors.errorContainer }]}>
+            <Ionicons name="receipt-outline" size={24} color={colors.error} />
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.onSurface }]}>Bills & Subscriptions</Text>
+          <Text style={[styles.cardDesc, { color: colors.outline }]}>Track upcoming payments and due dates</Text>
+        </AnimatedPressable>
+
+        <AnimatedPressable
+          enableHaptic
+          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}
+          onPress={() => router.push('/expenses')}
+        >
+          <View style={[styles.iconWrapper, { backgroundColor: colors.primaryContainer }]}>
+            <Ionicons name="wallet-outline" size={24} color={colors.primary} />
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.onSurface }]}>Household Expenses</Text>
+          <Text style={[styles.cardDesc, { color: colors.outline }]}>Log shared purchases and groceries</Text>
+        </AnimatedPressable>
+
+        <AnimatedPressable
+          enableHaptic
+          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            PdfReportService.generateMonthlyReport();
+          }}
+        >
+          <View style={[styles.iconWrapper, { backgroundColor: '#EEF2FF' }]}>
+            <Ionicons name="document-text-outline" size={24} color="#4F46E5" />
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.onSurface }]}>Download Monthly PDF Report</Text>
+          <Text style={[styles.cardDesc, { color: colors.outline }]}>Export professional financial summary & metrics report</Text>
+        </AnimatedPressable>
       </View>
-
-      <Text style={[styles.sectionTitle, { color: colors.onBackground }]}>
-        Financial Modules
-      </Text>
-
-      {/* Navigation Card to Expenses */}
-      <TouchableOpacity
-        style={[styles.navCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-        onPress={() => router.push('/expenses')}
-        accessibilityRole="button"
-        accessibilityLabel="Household expenses"
-      >
-        <View style={[styles.iconBox, { backgroundColor: colors.primaryContainer }]}>
-          <Ionicons name="wallet-outline" size={24} color={colors.primary} />
-        </View>
-        <View style={styles.navTextContainer}>
-          <Text style={[styles.navTitle, { color: colors.onSurface }]}>Household Expenses</Text>
-          <Text style={[styles.navSubtitle, { color: colors.onSurfaceVariant }]}>
-            Track spending, categories, and monthly totals
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.outline} />
-      </TouchableOpacity>
-
-      {/* Navigation Card to Bills */}
-      <TouchableOpacity
-        style={[styles.navCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-        onPress={() => router.push('/bills')}
-        accessibilityRole="button"
-        accessibilityLabel="Bills and payments"
-      >
-        <View style={[styles.iconBox, { backgroundColor: colors.errorContainer }]}>
-          <Ionicons name="receipt-outline" size={24} color={colors.error} />
-        </View>
-        <View style={styles.navTextContainer}>
-          <Text style={[styles.navTitle, { color: colors.onSurface }]}>Bills & Payments</Text>
-          <Text style={[styles.navSubtitle, { color: colors.onSurfaceVariant }]}>
-            Track utility bills, rent, and recurring payments
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.outline} />
-      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -98,69 +70,36 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
   },
-  headerCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
+  header: {
+    fontSize: 24,
+    fontWeight: '700',
     marginBottom: Spacing.xl,
-    ...Shadows.sm,
   },
-  headerSubtitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 4,
+  grid: {
+    gap: Spacing.lg,
   },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    gap: 6,
-  },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: Spacing.md,
-  },
-  navCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  card: {
     padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    marginBottom: Spacing.md,
+    flexDirection: 'column',
     ...Shadows.sm,
   },
-  iconBox: {
+  iconWrapper: {
     width: 48,
     height: 48,
-    borderRadius: BorderRadius.sm,
-    justifyContent: 'center',
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
-    marginRight: Spacing.md,
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
   },
-  navTextContainer: {
-    flex: 1,
-  },
-  navTitle: {
-    fontSize: 16,
+  cardTitle: {
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: Spacing.xs,
   },
-  navSubtitle: {
-    fontSize: 12,
-  },
+  cardDesc: {
+    fontSize: 14,
+  }
 });

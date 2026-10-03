@@ -9,12 +9,16 @@ interface MenuItem {
   title: string;
   subtitle: string;
   icon: keyof typeof Ionicons.glyphMap;
-  route: '/bills' | '/calendar' | '/reminders' | '/notes' | '/family' | '/settings';
+  route: '/bills' | '/calendar' | '/reminders' | '/notes' | '/family' | '/settings' | '/about' | '/help';
   color: string;
 }
 
+
+
 export default function MoreScreen() {
   const { colors } = useTheme();
+
+  let tabBarHeight = 80;
 
   const menuItems: MenuItem[] = [
     {
@@ -59,12 +63,26 @@ export default function MoreScreen() {
       route: '/settings',
       color: '#78909C',
     },
+    {
+      title: 'How to Use App',
+      subtitle: 'Tutorials, guides & feature walkthroughs',
+      icon: 'book-outline',
+      route: '/help',
+      color: '#26A69A',
+    },
+    {
+      title: 'About App',
+      subtitle: 'Developer credits, safety & support',
+      icon: 'information-circle-outline',
+      route: '/about',
+      color: '#FFB74D',
+    },
   ];
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[styles.contentContainer, { paddingBottom: tabBarHeight + Spacing.lg }]}
     >
       <Text style={[styles.headerTitle, { color: colors.onBackground }]}>
         More Features
@@ -106,7 +124,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
   },
   headerTitle: {
     fontSize: 24,

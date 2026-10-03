@@ -20,15 +20,15 @@ export const HouseholdService = {
   async addNewMember(
     householdId: string,
     name: string,
-    role: 'admin' | 'member' | 'child' = 'member',
-    whatsapp?: string
+    whatsapp?: string,
+    color?: string
   ): Promise<void> {
     const newMember: HouseholdMember = {
       id: `member-${Date.now()}`,
       householdId,
       name,
-      role,
       whatsapp: whatsapp?.trim() || undefined,
+      color: color || '#42A5F5',
       createdAt: Date.now(),
     };
     await HouseholdRepository.addMember(newMember);

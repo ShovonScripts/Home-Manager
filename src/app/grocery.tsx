@@ -8,8 +8,9 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
-import { GroceryProvider, useGrocery } from '../context/GroceryContext';
 import { useTheme } from '../context/ThemeContext';
+import { useHouseholdStore } from '../store/useHouseholdStore';
+import { useGroceryStore, useActiveListItems } from '../store/useGroceryStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorState, LoadingState } from '../components/common/AsyncState';
@@ -23,25 +24,35 @@ import { GroceryItem } from '../types';
 
 function GroceryScreenContent() {
   const { colors } = useTheme();
+  const household = useHouseholdStore(state => state.household);
   const {
     isLoading,
     error,
-    loadItems,
-    items,
-    filteredItems,
-    searchQuery,
-    setSearchQuery,
-    selectedCategory,
-    setCategory,
+    loadData,
+    activeListId,
     addItem,
     updateItem,
-    deleteItem,
     toggleItem,
-    clearCompleted,
-  } = useGrocery();
+    deleteItem,
+  } = useGroceryStore();
+
+  const items = useActiveListItems();
+
+  // Local state for search and filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setCategory] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
+
+  let tabBarHeight = 80;
+
+  React.useEffect(() => {
+    if (household?.id) {
+      loadData(household.id);
+    }
+  }, [household?.id, loadData]);
 
   const completedCount = items.filter((i) => i.isCompleted).length;
 
@@ -65,7 +76,9 @@ function GroceryScreenContent() {
         assignedTo,
       });
     } else {
-      addItem(name, quantity, category, assignedTo);
+      if (activeListId) {
+        addItem(activeListId, name, quantity, category, assignedTo);
+      }
     }
     setEditingItem(null);
   };
@@ -80,15 +93,25 @@ function GroceryScreenContent() {
         {
           text: 'Clear',
           style: 'destructive',
-          onPress: () => clearCompleted(),
+          onPress: () => {
+             items.filter(i => i.isCompleted).forEach(i => deleteItem(i.id));
+          },
         },
       ]
     );
   };
 
+  const filteredItems = items.filter(item => {
+    if (searchQuery.trim() && !item.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (selectedCategory && item.category !== selectedCategory) return false;
+    if (filter === 'pending' && item.isCompleted) return false;
+    if (filter === 'completed' && !item.isCompleted) return false;
+    return true;
+  });
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {isLoading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={loadItems} /> : (
+      {isLoading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={() => { if (household) loadData(household.id) }} /> : (
         <>
           {/* Search & Header Bar */}
           <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}>
@@ -108,7 +131,7 @@ function GroceryScreenContent() {
           </View>
 
           {/* Filter Tabs */}
-          <GroceryFilterBar />
+          <GroceryFilterBar filter={filter} setFilter={setFilter} />
 
           {/* Category Horizontal Scroll */}
           <View style={styles.categoryScrollContainer}>
@@ -155,13 +178,18 @@ function GroceryScreenContent() {
             renderItem={({ item }) => (
               <GroceryItemCard
                 item={item}
-                onToggle={(id, status) => toggleItem(id, status)}
-                onDelete={(id) => deleteItem(id)}
-                onEdit={(itemObj) => handleOpenEdit(itemObj)}
+                onToggle={toggleItem}
+                onDelete={deleteItem}
+                onEdit={handleOpenEdit}
               />
             )}
-            ListEmptyComponent={<GroceryEmptyState message="No grocery items found matching your filters." />}
-            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <GroceryEmptyState
+                message="No grocery items found matching your filters."
+                onAction={handleOpenAdd}
+              />
+            }
+            contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + Spacing.lg }]}
             showsVerticalScrollIndicator={false}
             initialNumToRender={15}
             maxToRenderPerBatch={10}
@@ -196,11 +224,7 @@ function GroceryScreenContent() {
 }
 
 export default function GroceryScreen() {
-  return (
-    <GroceryProvider>
-      <GroceryScreenContent />
-    </GroceryProvider>
-  );
+  return <GroceryScreenContent />;
 }
 
 const styles = StyleSheet.create({
@@ -245,7 +269,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContent: {
-    paddingBottom: 80,
   },
   fab: {
     position: 'absolute',

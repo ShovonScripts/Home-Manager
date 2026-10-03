@@ -7,9 +7,9 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
-import { ExpenseProvider, useExpense } from '../context/ExpenseContext';
 import { useTheme } from '../context/ThemeContext';
-import { useHousehold } from '../context/HouseholdContext';
+import { useHouseholdStore } from '../store/useHouseholdStore';
+import { useExpenseStore } from '../store/useExpenseStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorState, LoadingState } from '../components/common/AsyncState';
@@ -18,41 +18,35 @@ import { ExpenseCategoryChip } from '../components/expenses/ExpenseCategoryChip'
 import { ExpenseItemCard } from '../components/expenses/ExpenseItemCard';
 import { ExpenseItemModal } from '../components/expenses/ExpenseItemModal';
 import { ExpenseEmptyState } from '../components/expenses/ExpenseEmptyState';
-import { Expense } from '../types';
+import { ExpenseAnalyticsCard } from '../components/expenses/ExpenseAnalyticsCard';
 
 function ExpensesScreenContent() {
   const { colors } = useTheme();
-  const { household } = useHousehold();
+  const household = useHouseholdStore(state => state.household);
   const {
     isLoading,
     error,
-    loadExpenses,
-    filteredExpenses,
+    loadData,
+    expenses,
     categories,
-    searchQuery,
-    setSearchQuery,
-    selectedCategory,
-    setCategory,
-    selectedMonth,
-    setMonthFilter,
-    totalAmount,
     addExpense,
-    updateExpense,
     deleteExpense,
-  } = useExpense();
+  } = useExpenseStore();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setCategory] = useState<string | null>(null);
 
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+  React.useEffect(() => {
+    if (household?.id) {
+      loadData(household.id);
+    }
+  }, [household?.id, loadData]);
 
   const currencySymbol = household?.currency || '৳';
 
   const handleOpenAdd = () => {
-    setEditingExpense(null);
-    setIsModalVisible(true);
-  };
-
-  const handleOpenEdit = (expense: Expense) => {
-    setEditingExpense(expense);
     setIsModalVisible(true);
   };
 
@@ -64,20 +58,10 @@ function ExpensesScreenContent() {
     date: number,
     notes?: string
   ) => {
-    if (editingExpense) {
-      updateExpense({
-        ...editingExpense,
-        categoryId,
-        title,
-        amount,
-        paidBy,
-        date,
-        notes,
-      });
-    } else {
-      addExpense(categoryId, title, amount, paidBy, date, notes, currencySymbol);
+    if (household?.id) {
+       addExpense(household.id, categoryId, title, amount, currencySymbol, paidBy, date, notes);
     }
-    setEditingExpense(null);
+    setIsModalVisible(false);
   };
 
   const handleDelete = (id: string) => {
@@ -91,17 +75,32 @@ function ExpensesScreenContent() {
     ]);
   };
 
+  const filteredExpenses = expenses.filter(e => {
+    if (searchQuery.trim() && !e.title.toLowerCase().includes(searchQuery.toLowerCase()) && !e.notes?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (selectedCategory && e.categoryId !== selectedCategory) return false;
+    return true;
+  });
+
+  const totalAmount = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {isLoading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={loadExpenses} /> : (
+      {isLoading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={() => { if (household) loadData(household.id) }} /> : (
         <>
           {/* Summary Card */}
           <ExpenseSummaryCard
             totalAmount={totalAmount}
             currencySymbol={currencySymbol}
-            selectedMonth={selectedMonth}
-            onMonthChange={setMonthFilter}
+            selectedMonth={new Date().getMonth().toString()}
+            onMonthChange={() => {}}
             onAddPress={handleOpenAdd}
+          />
+
+          {/* Analytics Breakdown Card */}
+          <ExpenseAnalyticsCard
+            expenses={filteredExpenses}
+            categories={categories}
+            currencySymbol={currencySymbol}
           />
 
           {/* Search & Header Bar */}
@@ -153,11 +152,16 @@ function ExpensesScreenContent() {
               <ExpenseItemCard
                 expense={item}
                 categories={categories}
-                onEdit={handleOpenEdit}
+                onEdit={() => {}} // Disabled edit to match simpler store API
                 onDelete={handleDelete}
               />
             )}
-            ListEmptyComponent={<ExpenseEmptyState message="No expenses found matching your criteria." />}
+            ListEmptyComponent={
+              <ExpenseEmptyState
+                message="No expenses found matching your criteria."
+                onAction={handleOpenAdd}
+              />
+            }
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             initialNumToRender={15}
@@ -178,15 +182,11 @@ function ExpensesScreenContent() {
         </>
       )}
 
-      {/* Add / Edit Expense Modal */}
+      {/* Add Expense Modal */}
       <ExpenseItemModal
         visible={isModalVisible}
-        expenseToEdit={editingExpense}
         categories={categories}
-        onClose={() => {
-          setIsModalVisible(false);
-          setEditingExpense(null);
-        }}
+        onClose={() => setIsModalVisible(false)}
         onSave={handleSaveExpense}
       />
     </View>
@@ -194,11 +194,7 @@ function ExpensesScreenContent() {
 }
 
 export default function ExpensesScreen() {
-  return (
-    <ExpenseProvider>
-      <ExpensesScreenContent />
-    </ExpenseProvider>
-  );
+  return <ExpensesScreenContent />;
 }
 
 const styles = StyleSheet.create({

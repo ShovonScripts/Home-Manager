@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { useHousehold } from '../../context/HouseholdContext';
+import { useHouseholdStore } from '../../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Expense, ExpenseCategory } from '../../types';
@@ -40,7 +40,8 @@ export const ExpenseItemModal: React.FC<Props> = ({
   onSave,
 }) => {
   const { colors } = useTheme();
-  const { members, household } = useHousehold();
+  const members = useHouseholdStore(state => state.members);
+  const household = useHouseholdStore(state => state.household);
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');

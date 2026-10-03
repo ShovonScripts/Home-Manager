@@ -8,10 +8,11 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
-import { TaskProvider, useTask } from '../context/TaskContext';
 import { useTheme } from '../context/ThemeContext';
+import { useHouseholdStore } from '../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useTaskStore, useFilteredTasks } from '../store/useTaskStore';
 import { TaskFilterBar } from '../components/tasks/TaskFilterBar';
 import { TaskCategoryChip } from '../components/tasks/TaskCategoryChip';
 import { TaskItemCard } from '../components/tasks/TaskItemCard';
@@ -21,22 +22,33 @@ import { Task } from '../types';
 
 function TasksScreenContent() {
   const { colors } = useTheme();
+  const household = useHouseholdStore(state => state.household);
   const {
     tasks,
-    filteredTasks,
     categories,
     searchQuery,
     setSearchQuery,
     selectedCategory,
     setCategory,
+    loadTasks,
     addTask,
     updateTask,
     deleteTask,
     toggleTask,
-  } = useTask();
+  } = useTaskStore();
+
+  const filteredTasks = useFilteredTasks();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  let tabBarHeight = 80;
+
+  React.useEffect(() => {
+    if (household?.id) {
+      loadTasks(household.id);
+    }
+  }, [household?.id, loadTasks]);
 
   const handleOpenAdd = () => {
     setEditingTask(null);
@@ -65,7 +77,9 @@ function TasksScreenContent() {
         dueDate: dueDate !== undefined ? dueDate : editingTask.dueDate,
       });
     } else {
-      addTask(title, categoryId, description, assignedTo, dueDate);
+      if (household?.id) {
+        addTask(household.id, title, categoryId, description, assignedTo, dueDate);
+      }
     }
     setEditingTask(null);
   };
@@ -144,11 +158,16 @@ function TasksScreenContent() {
             categories={categories}
             onEdit={handleOpenEdit}
             onDelete={handleDelete}
-            onToggle={(id, isCompleted) => toggleTask(id, isCompleted)}
+            onToggle={toggleTask}
           />
         )}
-        ListEmptyComponent={<TaskEmptyState message="No tasks or chores found matching your filters." />}
-        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <TaskEmptyState
+            message="No tasks or chores found matching your filters."
+            onAction={handleOpenAdd}
+          />
+        }
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + Spacing.lg }]}
         showsVerticalScrollIndicator={false}
         initialNumToRender={15}
         maxToRenderPerBatch={10}
@@ -179,11 +198,7 @@ function TasksScreenContent() {
 }
 
 export default function TasksScreen() {
-  return (
-    <TaskProvider>
-      <TasksScreenContent />
-    </TaskProvider>
-  );
+  return <TasksScreenContent />;
 }
 
 const styles = StyleSheet.create({
@@ -224,7 +239,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   listContent: {
-    paddingBottom: 80,
   },
   fab: {
     position: 'absolute',

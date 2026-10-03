@@ -34,6 +34,7 @@ export const initializeDatabase = async (): Promise<void> => {
       role TEXT NOT NULL DEFAULT 'member', -- 'admin', 'member', 'child'
       avatarUrl TEXT,
       whatsapp TEXT,
+      color TEXT,
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL,
       FOREIGN KEY (householdId) REFERENCES households (id) ON DELETE CASCADE
@@ -150,6 +151,7 @@ export const initializeDatabase = async (): Promise<void> => {
       isCompleted INTEGER NOT NULL DEFAULT 0,
       type TEXT NOT NULL DEFAULT 'general', -- 'medicine', 'general'
       targetMemberId TEXT,
+      notificationId TEXT, -- Local push notification ID
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL,
       FOREIGN KEY (householdId) REFERENCES households (id) ON DELETE CASCADE
@@ -191,6 +193,13 @@ export const initializeDatabase = async (): Promise<void> => {
     if (!hasWhatsapp) {
       await db.execAsync('ALTER TABLE household_members ADD COLUMN whatsapp TEXT;');
     }
+
+    // Migration for household members color
+    const colorInfo = await db.getAllAsync<{ name: string }>("PRAGMA table_info(household_members)");
+    const hasColor = colorInfo.some((col) => col.name === 'color');
+    if (!hasColor) {
+      await db.execAsync('ALTER TABLE household_members ADD COLUMN color TEXT;');
+    }
   } catch (e) {
     console.log('Migration check warning:', e);
   }
@@ -210,8 +219,8 @@ export const initializeDatabase = async (): Promise<void> => {
     );
 
     await db.runAsync(
-      'INSERT INTO household_members (id, householdId, name, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
-      ['member-1', defaultHouseholdId, 'Primary User', 'admin', now, now]
+      'INSERT INTO household_members (id, householdId, name, role, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      ['member-1', defaultHouseholdId, 'Primary User', 'admin', '#42A5F5', now, now]
     );
 
     // Seed default expense categories

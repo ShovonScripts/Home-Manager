@@ -8,8 +8,9 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
-import { NoteProvider, useNote } from '../context/NoteContext';
 import { useTheme } from '../context/ThemeContext';
+import { useHouseholdStore } from '../store/useHouseholdStore';
+import { useNoteStore } from '../store/useNoteStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -20,18 +21,25 @@ import { Note } from '../types';
 
 function NotesScreenContent() {
   const { colors } = useTheme();
+  const household = useHouseholdStore(state => state.household);
   const {
+    loadData,
     notes,
-    filteredNotes,
-    searchQuery,
-    setSearchQuery,
     addNote,
     updateNote,
     deleteNote,
-  } = useNote();
+  } = useNoteStore();
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+
+  React.useEffect(() => {
+    if (household?.id) {
+      loadData(household.id);
+    }
+  }, [household?.id, loadData]);
 
   const handleOpenAdd = () => {
     setEditingNote(null);
@@ -45,15 +53,14 @@ function NotesScreenContent() {
 
   const handleSaveNote = (title: string, content: string) => {
     if (editingNote) {
-      updateNote({
-        ...editingNote,
-        title,
-        content,
-      });
+      updateNote(editingNote.id, title, content);
     } else {
-      addNote(title, content);
+      if (household?.id) {
+        addNote(household.id, title, content);
+      }
     }
     setEditingNote(null);
+    setIsModalVisible(false);
   };
 
   const handleDelete = (id: string) => {
@@ -66,6 +73,11 @@ function NotesScreenContent() {
       },
     ]);
   };
+
+  const filteredNotes = notes.filter(n => {
+    if (searchQuery.trim() && !n.title.toLowerCase().includes(searchQuery.toLowerCase()) && !n.content.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -149,11 +161,7 @@ function NotesScreenContent() {
 }
 
 export default function NotesScreen() {
-  return (
-    <NoteProvider>
-      <NotesScreenContent />
-    </NoteProvider>
-  );
+  return <NotesScreenContent />;
 }
 
 const styles = StyleSheet.create({

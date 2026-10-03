@@ -1,14 +1,17 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { GroceryFilter, useGrocery } from '../../context/GroceryContext';
 import { Spacing, BorderRadius } from '../../constants/theme';
 
-export const GroceryFilterBar: React.FC = () => {
-  const { colors } = useTheme();
-  const { filter, setFilter } = useGrocery();
+interface Props {
+  filter: 'all' | 'pending' | 'completed';
+  setFilter: (f: 'all' | 'pending' | 'completed') => void;
+}
 
-  const filters: { label: string; value: GroceryFilter }[] = [
+export const GroceryFilterBar: React.FC<Props> = ({ filter, setFilter }) => {
+  const { colors } = useTheme();
+
+  const filters: { label: string; value: 'all' | 'pending' | 'completed' }[] = [
     { label: 'All', value: 'all' },
     { label: 'Pending', value: 'pending' },
     { label: 'Completed', value: 'completed' },
