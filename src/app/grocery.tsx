@@ -79,9 +79,8 @@ function GroceryScreenContent() {
         assignedTo,
       });
     } else {
-      if (activeListId) {
-        addItem(activeListId, name, quantity, category, assignedTo);
-      }
+      const targetListId = activeListId || '';
+      addItem(targetListId, name, quantity, category, assignedTo);
     }
     setEditingItem(null);
   };

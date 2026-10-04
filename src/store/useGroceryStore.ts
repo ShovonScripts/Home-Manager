@@ -31,10 +31,26 @@ export const useGroceryStore = create<GroceryState>((set, get) => ({
       set({ isLoading: true, error: null });
       const db = await getDatabase();
 
-      const lists = await db.getAllAsync<GroceryList>(
+      let lists = await db.getAllAsync<GroceryList>(
         'SELECT * FROM grocery_lists WHERE householdId = ? AND isArchived = 0 ORDER BY createdAt DESC',
         [householdId]
       );
+
+      if (lists.length === 0) {
+        const now = Date.now();
+        const defaultList: GroceryList = {
+          id: `glist-${now}`,
+          householdId,
+          name: 'Main Grocery List',
+          isArchived: false,
+          createdAt: now,
+        };
+        await db.runAsync(
+          'INSERT INTO grocery_lists (id, householdId, name, isArchived, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+          [defaultList.id, defaultList.householdId, defaultList.name, 0, defaultList.createdAt, now]
+        );
+        lists = [defaultList];
+      }
 
       const items = await db.getAllAsync<any>(
         'SELECT * FROM grocery_items WHERE listId IN (SELECT id FROM grocery_lists WHERE householdId = ? AND isArchived = 0) ORDER BY isCompleted ASC, createdAt DESC',
@@ -46,7 +62,10 @@ export const useGroceryStore = create<GroceryState>((set, get) => ({
         isCompleted: Boolean(item.isCompleted)
       }));
 
-      const activeListId = get().activeListId || (lists.length > 0 ? lists[0].id : null);
+      const currentActiveId = get().activeListId;
+      const activeListId = currentActiveId && lists.some(l => l.id === currentActiveId)
+        ? currentActiveId
+        : lists[0].id;
 
       set({ lists, items: parsedItems, activeListId, isLoading: false });
     } catch (err: any) {
@@ -85,10 +104,34 @@ export const useGroceryStore = create<GroceryState>((set, get) => ({
   addItem: async (listId: string, name: string, quantity = '1', category = 'General', assignedTo?: string) => {
     try {
       const db = await getDatabase();
+      const state = get();
+      let targetListId = listId || state.activeListId || (state.lists.length > 0 ? state.lists[0].id : '');
+
+      if (!targetListId || !state.lists.some(l => l.id === targetListId)) {
+        if (state.lists.length > 0) {
+          targetListId = state.lists[0].id;
+        } else {
+          const now = Date.now();
+          const defaultList: GroceryList = {
+            id: `glist-${now}`,
+            householdId: 'default-household',
+            name: 'Main Grocery List',
+            isArchived: false,
+            createdAt: now,
+          };
+          await db.runAsync(
+            'INSERT INTO grocery_lists (id, householdId, name, isArchived, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+            [defaultList.id, defaultList.householdId, defaultList.name, 0, defaultList.createdAt, now]
+          );
+          set({ lists: [defaultList], activeListId: defaultList.id });
+          targetListId = defaultList.id;
+        }
+      }
+
       const now = Date.now();
       const newItem: GroceryItem = {
         id: `gitem-${now}-${Math.random().toString(36).substr(2, 4)}`,
-        listId,
+        listId: targetListId,
         name: name.trim(),
         quantity: quantity.trim() || '1',
         category,
@@ -102,7 +145,7 @@ export const useGroceryStore = create<GroceryState>((set, get) => ({
         [newItem.id, newItem.listId, newItem.name, newItem.quantity, newItem.category, 0, newItem.assignedTo || null, newItem.createdAt, now]
       );
 
-      set((state) => ({ items: [newItem, ...state.items] }));
+      set((s) => ({ items: [newItem, ...s.items] }));
     } catch (err: any) {
       set({ error: err?.message || 'Failed to add item' });
     }

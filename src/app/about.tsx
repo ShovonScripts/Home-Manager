@@ -27,6 +27,11 @@ export default function AboutScreen() {
           </View>
           <Text style={[styles.appName, { color: colors.onBackground }]}>Home Manager</Text>
           <Text style={[styles.appVersion, { color: colors.outline }]}>Version 1.0.0</Text>
+          <TouchableOpacity onPress={() => handleOpenLink('https://nasdigital.uk/')} activeOpacity={0.7} style={{ marginTop: 6 }}>
+            <Text style={[styles.madeByTag, { color: colors.primary }]}>
+              Made by <Text style={{ fontWeight: '700', textDecorationLine: 'underline' }}>NAS Digital</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Developer Credit */}
@@ -35,8 +40,11 @@ export default function AboutScreen() {
             <Ionicons name="code-slash" size={20} color={colors.primary} />
             <Text style={[styles.cardTitle, { color: colors.onSurface }]}>Developer Credit</Text>
           </View>
+          <Text style={[styles.paragraph, { color: colors.onSurfaceVariant, marginBottom: Spacing.xs }]}>
+            Designed and developed with passion by <Text style={{ fontWeight: '700', color: colors.primary, textDecorationLine: 'underline' }} onPress={() => handleOpenLink('https://www.facebook.com/shovon.5271')}>Shovon</Text>.
+          </Text>
           <Text style={[styles.paragraph, { color: colors.onSurfaceVariant }]}>
-            Designed and developed with passion by <Text style={{ fontWeight: '700', color: colors.primary, textDecorationLine: 'underline' }} onPress={() => handleOpenLink('https://www.facebook.com/shovon.5271')}>Shovon</Text>. This project was created to help families and individuals manage their households efficiently without compromising on design or user experience.
+            This app is proudly created and maintained by <Text style={{ fontWeight: '700', color: colors.primary, textDecorationLine: 'underline' }} onPress={() => handleOpenLink('https://nasdigital.uk/')}>NAS Digital</Text>.
           </Text>
         </GlassCard>
 
@@ -121,6 +129,11 @@ const styles = StyleSheet.create({
   appVersion: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  madeByTag: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   card: {
     padding: Spacing.lg,
