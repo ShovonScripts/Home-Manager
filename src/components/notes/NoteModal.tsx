@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Note } from '../../types';
 
 interface Props {

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { formatCurrency } from '../../utils/currency';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 interface Props {
   totalOutstanding: number;

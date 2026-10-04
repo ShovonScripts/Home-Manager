@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useHouseholdStore } from '../../store/useHouseholdStore';
 import { getMemberDisplayName } from '../../utils/members';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { GROCERY_CATEGORIES } from '../../constants/groceryCategories';
 

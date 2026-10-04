@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing, BorderRadius } from '../../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { CalendarCategoryConfig } from '../../constants/calendarCategories';
 
 interface Props {

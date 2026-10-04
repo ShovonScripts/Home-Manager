@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { PdfReportService } from '../services/pdfReportService';
 import * as Haptics from 'expo-haptics';

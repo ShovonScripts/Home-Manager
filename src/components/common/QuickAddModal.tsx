@@ -19,7 +19,7 @@ import { useExpenseStore } from '../../store/useExpenseStore';
 import { useBillStore } from '../../store/useBillStore';
 import { useReminderStore } from '../../store/useReminderStore';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 
 interface Props {

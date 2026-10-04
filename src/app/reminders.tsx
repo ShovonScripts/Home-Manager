@@ -12,7 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useReminderStore } from '../store/useReminderStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { ReminderItemCard } from '../components/reminders/ReminderItemCard';
 import { ReminderModal } from '../components/reminders/ReminderModal';

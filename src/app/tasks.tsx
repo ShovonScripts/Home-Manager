@@ -11,7 +11,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTaskStore, useFilteredTasks } from '../store/useTaskStore';
 import { TaskFilterBar } from '../components/tasks/TaskFilterBar';

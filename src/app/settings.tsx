@@ -12,7 +12,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { HouseholdRepository } from '../storage/repositories/householdRepository';
 import { Household } from '../types';
 import { BackupService } from '../services/backupService';

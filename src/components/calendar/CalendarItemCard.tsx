@@ -4,7 +4,7 @@ import { ImportantDate } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { formatDate } from '../../utils/date';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { CALENDAR_CATEGORIES } from '../../constants/calendarCategories';
 
 interface Props {

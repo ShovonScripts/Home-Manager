@@ -11,7 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useExpenseStore } from '../store/useExpenseStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ErrorState, LoadingState } from '../components/common/AsyncState';
 import { ExpenseSummaryCard } from '../components/expenses/ExpenseSummaryCard';

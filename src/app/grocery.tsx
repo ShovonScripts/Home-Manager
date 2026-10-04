@@ -12,7 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useGroceryStore, useActiveListItems } from '../store/useGroceryStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ErrorState, LoadingState } from '../components/common/AsyncState';
 import { GroceryFilterBar } from '../components/grocery/GroceryFilterBar';

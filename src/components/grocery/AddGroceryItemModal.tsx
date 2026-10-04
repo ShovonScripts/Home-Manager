@@ -13,7 +13,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useHouseholdStore } from '../../store/useHouseholdStore';
 import { Spacing, BorderRadius, Shadows } from '../../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { GROCERY_CATEGORIES } from '../../constants/groceryCategories';
 
 interface Props {

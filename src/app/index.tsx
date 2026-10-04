@@ -8,7 +8,7 @@ import { useBillStore } from '../store/useBillStore';
 import { useGroceryStore } from '../store/useGroceryStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { formatCurrency } from '../utils/currency';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { AnimatedPressable } from '../components/common/AnimatedPressable';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { router, useNavigation } from 'expo-router';

@@ -12,7 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useCalendarStore } from '../store/useCalendarStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { CalendarCategoryChip } from '../components/calendar/CalendarCategoryChip';
 import { CalendarItemCard } from '../components/calendar/CalendarItemCard';
 import { CalendarModal } from '../components/calendar/CalendarModal';

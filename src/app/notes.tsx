@@ -12,7 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useNoteStore } from '../store/useNoteStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { NoteItemCard } from '../components/notes/NoteItemCard';
 import { NoteModal } from '../components/notes/NoteModal';
 import { NoteEmptyState } from '../components/notes/NoteEmptyState';

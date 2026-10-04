@@ -12,7 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useHouseholdStore } from '../store/useHouseholdStore';
 import { useBillStore } from '../store/useBillStore';
 import { Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { ErrorState, LoadingState } from '../components/common/AsyncState';
 import { BillSummaryCard } from '../components/bills/BillSummaryCard';
 import { BillCategoryChip } from '../components/bills/BillCategoryChip';
